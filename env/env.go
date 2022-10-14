@@ -51,3 +51,11 @@ func StaticController() string {
 func StaticPort() string {
 	return GetString("STATIC_PORT")
 }
+
+func Gateway() string {
+	return GetString("GATEWAY") + ":" + GatewayPort()
+}
+
+func GatewayPort() string {
+	return GetString("GATEWAY_PORT")
+}
