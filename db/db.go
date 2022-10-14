@@ -27,27 +27,3 @@ func Open() *sql.DB {
 	}
 	return db
 }
-
-func CreateStmt(db *sql.DB) *sql.Stmt {
-	// Prepare statement for reading data
-	createStmt, err := db.Prepare(`INSERT IGNORE INTO categorizer_transactions 
-	(network_id, address, block_number, txid, tx_index, tx_from, method_name, args, value)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-	defer createStmt.Close()
-
-	return createStmt
-}
-
-func SetBlockNumberStmt(db *sql.DB) *sql.Stmt {
-	// Prepare statement for reading data
-	createStmt, err := db.Prepare(`UPDATE categorizer_blocks SET synced_block = ? WHERE network_id = ? AND address = ? `)
-	if err != nil {
-		panic(err.Error()) // proper error handling instead of panic in your app
-	}
-	defer createStmt.Close()
-
-	return createStmt
-}
