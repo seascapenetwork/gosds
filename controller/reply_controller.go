@@ -14,11 +14,11 @@ type CommandHandlers map[string]interface{}
 /*
 Creates a new Reply controller using ZeroMQ
 */
-func ReplyController(commands CommandHandlers) {
+func ReplyController(db *sql.DB, commands CommandHandlers, port string) {
 	// Socket to talk to clients
 	socket, _ := zmq.NewSocket(zmq.REP)
 	defer socket.Close()
-	if err := socket.Bind("tcp://*:3013"); err != nil {
+	if err := socket.Bind("tcp://*:" + port); err != nil {
 		println(fmt.Errorf("listening: %w", err))
 	}
 
