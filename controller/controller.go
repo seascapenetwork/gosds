@@ -51,7 +51,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, port string) {
 			continue
 		}
 
-		reply := commands[request.Command].(func(message.Request) message.Reply)(request)
+		reply := commands[request.Command].(func(*sql.DB, message.Request) message.Reply)(db, request)
 
 		// Do some 'work'
 		time.Sleep(time.Second)
