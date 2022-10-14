@@ -1,6 +1,9 @@
 package env
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 func GetString(name string) string {
 	value := os.Getenv(name)
@@ -8,6 +11,22 @@ func GetString(name string) string {
 		println("no " + name + "' environment variable set")
 	}
 	return value
+}
+
+func GetNumeric(name string) uint {
+	value := os.Getenv(name)
+	if len(value) == 0 {
+		println("no " + name + "' environment variable set")
+		return 0
+	}
+
+	num, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		println("invalid number format " + err.Error())
+		return 0
+	}
+
+	return uint(num)
 }
 
 // Returns the path of Spaghetti Publisher as host:port
@@ -58,4 +77,12 @@ func Gateway() string {
 
 func GatewayPort() string {
 	return GetString("GATEWAY_PORT")
+}
+
+func PublisherController() string {
+	return GetString("PUBLISHER_CONTROLLER_HOST") + ":" + PublisherControllerPort()
+}
+
+func PublisherControllerPort() string {
+	return GetString("PUBLISHER_CONTROLLER_PORT")
 }
