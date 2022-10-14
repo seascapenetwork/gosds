@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/blocklords/sds-go/message"
+	"github.com/blocklords/gosds/message"
 
 	zmq "github.com/pebbe/zmq4"
 )

@@ -7,5 +7,5 @@ import (
 var Version string = "1.0.0"
 
 func PrintVersion() {
-	fmt.Println("[SDS-GO] " + Version)
+	fmt.Println("[gosds] " + Version)
 }

@@ -1,3 +1,3 @@
-module github.com/blocklords/sds-go
+module github.com/blocklords/gosds
 
 go 1.17
