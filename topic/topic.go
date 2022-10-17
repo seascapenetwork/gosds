@@ -5,14 +5,17 @@ import (
 	"strings"
 )
 
-type Topic struct {
-	Organization string
-	Project      string
-	NetworkId    string
-	Group        string
-	Name         string
-	Method       string
-}
+type (
+	TopicKey string
+	Topic    struct {
+		Organization string
+		Project      string
+		NetworkId    string
+		Group        string
+		Name         string
+		Method       string
+	}
+)
 
 func New(organization string, project string, networkId string, group string, name string, method string) Topic {
 	return Topic{
