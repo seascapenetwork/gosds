@@ -22,10 +22,11 @@ func ReplyController(db *sql.DB, commands CommandHandlers, port string) {
 	socket, _ := zmq.NewSocket(zmq.REP)
 	defer socket.Close()
 	if err := socket.Bind("tcp://*:" + port); err != nil {
-		println(fmt.Errorf("listening: %w", err))
+		println("Could not start a server: ", err.Error())
+		panic(err)
 	}
 
-	println("Waiting for commands on port `3013`")
+	println("Waiting for commands on port " + port)
 
 	for {
 		msg_raw, err := socket.RecvMessage(0)
