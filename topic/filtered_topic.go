@@ -83,30 +83,53 @@ func (t *TopicFilter) ToString(level uint8) string {
 	return str
 }
 
-func ParseJSONToTopicFilter(obj map[string][]string) TopicFilter {
-	organization := obj["organization"]
-	project := obj["project"]
+func ParseJSONToTopicFilter(obj map[string]interface{}) TopicFilter {
 	topic := TopicFilter{
-		Organization: organization,
-		Project:      project,
-		NetworkId:    []string{""},
-		Group:        []string{""},
-		Name:         []string{""},
+		Organization: []string{},
+		Project:      []string{},
+		NetworkId:    []string{},
+		Group:        []string{},
+		Name:         []string{},
 	}
 
-	networkId := obj["network_id"]
-	if networkId != nil {
-		topic.NetworkId = obj["network_id"]
+	if obj["network_id"] != nil {
+		network_id := obj["network_id"].([]interface{})
+		topic.NetworkId = make([]string, len(network_id))
+		for i, o := range network_id {
+			topic.NetworkId[i] = o.(string)
+		}
 	}
 
-	group := obj["group"]
-	if group != nil {
-		topic.Group = obj["group"]
+	if obj["organization"] != nil {
+		organizations := obj["organization"].([]interface{})
+		topic.Organization = make([]string, len(organizations))
+		for i, o := range organizations {
+			topic.Organization[i] = o.(string)
+		}
 	}
 
-	name := obj["name"]
-	if name != nil {
-		topic.Name = obj["name"]
+	if obj["project"] != nil {
+		project := obj["project"].([]interface{})
+		topic.Project = make([]string, len(project))
+		for i, o := range project {
+			topic.Project[i] = o.(string)
+		}
+	}
+
+	if obj["group"] != nil {
+		group := obj["group"].([]interface{})
+		topic.Group = make([]string, len(group))
+		for i, o := range group {
+			topic.Group[i] = o.(string)
+		}
+	}
+
+	if obj["name"] != nil {
+		name := obj["name"].([]interface{})
+		topic.Name = make([]string, len(name))
+		for i, o := range name {
+			topic.Name[i] = o.(string)
+		}
 	}
 
 	return topic
