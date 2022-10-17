@@ -50,6 +50,10 @@ func (t *TopicFilter) Len(property string) int {
 	}
 }
 
+func (t *TopicFilter) Key() TopicKey {
+	return TopicKey(t.ToString())
+}
+
 func list(properties []string) string {
 	str := ""
 	for _, v := range properties {
@@ -59,10 +63,7 @@ func list(properties []string) string {
 	return str
 }
 
-func (t *TopicFilter) ToString(level uint8) string {
-	if level < 1 || level > 6 {
-		return ""
-	}
+func (t *TopicFilter) ToString() string {
 	str := ""
 	if len(t.Organization) > 0 {
 		str += "o:" + list(t.Organization) + ";"
