@@ -93,7 +93,7 @@ func (smartcontract *Smartcontract) ToString() string {
 }
 
 // Returns list of smartcontracts by topic filter in remote Static service
-func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []Smartcontract {
+func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []*Smartcontract {
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_filter",
@@ -105,30 +105,30 @@ func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []Smartcont
 	fmt.Println(request.ToString())
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
 		fmt.Println("Failed to send a command for abi getting from static controller", err.Error())
-		return []Smartcontract{}
+		return []*Smartcontract{}
 	}
 
 	// Wait for reply.
 	r, err := socket.RecvMessage(0)
 	if err != nil {
 		fmt.Println("Failed to receive reply from static controller", err.Error())
-		return []Smartcontract{}
+		return []*Smartcontract{}
 	}
 
 	reply, err := message.ParseReply(r)
 	if err != nil {
 		fmt.Println("Failed to parse abi reply", err.Error())
-		return []Smartcontract{}
+		return []*Smartcontract{}
 	}
 	if !reply.IsOK() {
 		fmt.Println("The static server returned failure: ", reply.Message)
-		return []Smartcontract{}
+		return []*Smartcontract{}
 	}
 
 	rawSmartcontracts := reply.Params["smartcontracts"].([]map[string]interface{})
-	var smartcontracts []Smartcontract = make([]Smartcontract, len(rawSmartcontracts))
+	var smartcontracts []*Smartcontract = make([]*Smartcontract, len(rawSmartcontracts))
 	for i, rawSmartcontract := range rawSmartcontracts {
-		smartcontracts[i] = *NewSmartcontract(rawSmartcontract)
+		smartcontracts[i] = NewSmartcontract(rawSmartcontract)
 	}
 
 	return smartcontracts
