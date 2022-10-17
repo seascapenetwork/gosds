@@ -19,45 +19,56 @@ type Configuration struct {
 	exists       bool
 }
 
+func (c *Configuration) SetId(id uint) {
+	c.exists = true
+	c.id = id
+}
+
+func (c *Configuration) SetAddress(address string) {
+	c.Address = address
+}
+
 func (c *Configuration) Exists() bool { return c.exists }
+
+// Creates a new static.Configuration class based on the given data
+func NewConfiguration(body map[string]interface{}) *Configuration {
+	conf := Configuration{
+		Organization: body["organization"].(string),
+		Project:      body["project"].(string),
+		NetworkId:    body["network_id"].(string),
+		Group:        body["group"].(string),
+		Name:         body["name"].(string),
+	}
+	address := ""
+	if body["address"] != nil {
+		address = body["address"].(string)
+	}
+
+	id := uint(0)
+	if body["id"] != nil {
+		id = uint(body["id"].(float64))
+	}
+	conf.id = id
+	conf.exists = true
+	conf.Address = address
+
+	return &conf
+}
 
 // Load Configuration from sds-static controller
 func RemoteConfigByTopic(sock *zmq.Socket, t *topic.Topic) Configuration {
 	return Configuration{}
 }
 
-func (c *Configuration) GetSmartcontract(networkId string, group string, name string) *Smartcontract {
-	_, ok := c.config[networkId]
-	if !ok {
-		return nil
-	}
-
-	networkConfig := c.config[networkId]
-	return networkConfig.GetSmartcontract(group, name)
-}
-
-func (c *Configuration) ExistSmartcontract(networkId string, group string, name string) bool {
-	networkConfig, ok := c.config[networkId]
-	if !ok {
-		return false
-	}
-
-	groupConfig, ok2 := networkConfig.config[group]
-	if !ok2 {
-		return false
-	}
-
-	return groupConfig.SmartcontractInGroup(name)
-}
-
 func (c *Configuration) ToJSON() map[string]interface{} {
-	obj := make(map[string]interface{}, len(c.config))
-
-	for k, v := range c.config {
-		obj[k] = v.ToJSON()
+	return map[string]interface{}{
+		"name":         c.Name,
+		"network_id":   c.NetworkId,
+		"group":        c.Group,
+		"organization": c.Organization,
+		"project":      c.Project,
+		"address":      c.Address,
 	}
-
-	return obj
 }
 
 func (c *Configuration) ToString() string {

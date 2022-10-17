@@ -14,12 +14,12 @@ type (
 	SmartcontractKey string
 	Smartcontract    struct {
 		// Body abi.ABI
-		name                string
-		address             string
-		abiHash             string
-		txid                string
-		deployer            string
-		startingBlockNumber int
+		NetworkId           string
+		Address             string
+		AbiHash             string
+		Txid                string
+		Deployer            string
+		StartingBlockNumber int
 		exists              bool
 	}
 )
@@ -29,51 +29,53 @@ func CreateSmartcontractKey(networkId string, address string) SmartcontractKey {
 	return SmartcontractKey(key)
 }
 
+func (c *Smartcontract) Key() (string, string) {
+	return c.NetworkId, c.Address
+}
+
+func (c *Smartcontract) SetExists(exists bool) {
+	c.exists = exists
+}
+
 func NewSmartcontract(body map[string]interface{}) *Smartcontract {
 	smartcontract := Smartcontract{}
 	smartcontract.exists = false
-	if body["name"] != nil {
-		smartcontract.name = body["name"].(string)
+	if body["network_id"] != nil {
+		smartcontract.NetworkId = body["network_id"].(string)
 	}
 	if body["address"] != nil {
-		smartcontract.address = body["address"].(string)
+		smartcontract.Address = body["address"].(string)
 	}
 	if body["abi_hash"] != nil {
-		smartcontract.abiHash = body["abi_hash"].(string)
+		smartcontract.AbiHash = body["abi_hash"].(string)
 	}
 	if body["txid"] != nil {
-		smartcontract.txid = body["txid"].(string)
+		smartcontract.Txid = body["txid"].(string)
 	}
 	// optional parameter
 	if body["deployer"] != nil {
-		smartcontract.deployer = body["deployer"].(string)
+		smartcontract.Deployer = body["deployer"].(string)
 	} else {
-		smartcontract.deployer = ""
+		smartcontract.Deployer = ""
 	}
 	if body["starting_block_number"] != nil {
-		smartcontract.startingBlockNumber = int(body["starting_block_number"].(float64))
+		smartcontract.StartingBlockNumber = int(body["starting_block_number"].(float64))
 	}
 
 	return &smartcontract
 }
 
-func (smartcontract *Smartcontract) Address() string {
-	return smartcontract.address
-}
-
 func (smartcontract *Smartcontract) ToJSON() map[string]interface{} {
 	i := map[string]interface{}{}
-	i["name"] = smartcontract.name
-	i["address"] = smartcontract.address
-	i["abi_hash"] = smartcontract.abiHash
-	i["txid"] = smartcontract.txid
-	i["starting_block_number"] = smartcontract.startingBlockNumber
-	i["deployer"] = smartcontract.deployer
+	i["network_id"] = smartcontract.NetworkId
+	i["address"] = smartcontract.Address
+	i["abi_hash"] = smartcontract.AbiHash
+	i["txid"] = smartcontract.Txid
+	i["starting_block_number"] = smartcontract.StartingBlockNumber
+	i["deployer"] = smartcontract.Deployer
 
 	return i
 }
-
-func (smartcontract *Smartcontract) Name() string { return smartcontract.name }
 
 func (smartcontract *Smartcontract) ToString() string {
 	s := smartcontract.ToJSON()
@@ -85,7 +87,7 @@ func (smartcontract *Smartcontract) ToString() string {
 	return string(byt)
 }
 
-// Returns list of smartcontracts by topic filter.
+// Returns list of smartcontracts by topic filter in remote Static service
 func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []Smartcontract {
 	// Send hello.
 	request := message.Request{
