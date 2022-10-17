@@ -33,6 +33,11 @@ func (c *Smartcontract) Key() (string, string) {
 	return c.NetworkId, c.Address
 }
 
+func (c *Smartcontract) KeyString() SmartcontractKey {
+	key := c.NetworkId + "." + c.Address
+	return SmartcontractKey(key)
+}
+
 func (c *Smartcontract) SetExists(exists bool) {
 	c.exists = exists
 }
