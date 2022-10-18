@@ -55,5 +55,10 @@ func ParseReply(msgs []string) (Reply, error) {
 		replyMessage = dat["message"].(string)
 	}
 
-	return Reply{Status: dat["status"].(string), Params: dat["params"].(map[string]interface{}), Message: replyMessage}, nil
+	var params map[string]interface{}
+	if dat["params"] != nil {
+		params = dat["params"].(map[string]interface{})
+	}
+
+	return Reply{Status: dat["status"].(string), Params: params, Message: replyMessage}, nil
 }
