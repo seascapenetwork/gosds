@@ -61,8 +61,13 @@ func (b *Block) ToJSON() map[string]interface{} {
 	i["network_id"] = b.networkId
 	i["address"] = b.address
 	i["abi_hash"] = b.abiHash
-	i["starting_block_number"] = b.syncedBlockNumber
+	i["synced_block_number"] = b.syncedBlockNumber
 	return i
+}
+
+func ParseJSON(blob map[string]interface{}) *Block {
+	b := New(blob["network_id"].(string), blob["address"].(string), blob["abi_hash"].(string), int(blob["synced_block_number"].(float64)))
+	return &b
 }
 
 func (b *Block) ToString() string {
