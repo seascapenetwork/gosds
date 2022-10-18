@@ -144,3 +144,43 @@ func GetAll(db *sql.DB, networkId string) []Block {
 
 	return blocks
 }
+
+func RemoteGetAll(socket *zmq.Socket) ([]*Block, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "get_all",
+		Param:   map[string]interface{}{},
+	}
+	if _, err := socket.SendMessage(request.ToString()); err != nil {
+		fmt.Println("Failed to send a command for abi getting from static controller")
+		return nil, fmt.Errorf("sending: %w", err)
+	}
+
+	// Wait for reply.
+	r, err := socket.RecvMessage(0)
+	if err != nil {
+		fmt.Println("Failed to receive reply from static controller")
+		return nil, fmt.Errorf("receiving: %w", err)
+	}
+
+	fmt.Println(r)
+	reply, err := message.ParseReply(r)
+	if err != nil {
+		fmt.Println("Failed to parse abi reply")
+		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
+	}
+	if !reply.IsOK() {
+		fmt.Println("The static server returned failure")
+		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
+	}
+
+	returnedBlocks := reply.Params["blocks"].([]interface{})
+	blocks := make([]*Block, len(returnedBlocks))
+	for i, returnedBlock := range returnedBlocks {
+		b := ParseJSON(returnedBlock.(map[string]interface{}))
+
+		blocks[i] = b
+	}
+
+	return blocks, nil
+}
