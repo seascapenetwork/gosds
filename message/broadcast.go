@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -13,8 +14,8 @@ type Broadcast struct {
 /* Convert to format understood by the protocol */
 func (b *Broadcast) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"topic":   b.Topic,
-		"message": b.reply.ToJSON(),
+		"topic": b.Topic,
+		"reply": b.reply.ToJSON(),
 	}
 }
 
@@ -43,7 +44,7 @@ func (b *Broadcast) Reply() Reply {
 	return b.reply
 }
 
-func (r *Broadcast) IsOK() bool { return r.reply.Status == "ok" || r.reply.Status == "OK" }
+func (r *Broadcast) IsOK() bool { return r.reply.IsOK() }
 
 func ParseBroadcast(msgs []string) (Broadcast, error) {
 	msg := ""
@@ -52,23 +53,21 @@ func ParseBroadcast(msgs []string) (Broadcast, error) {
 	}
 	i := strings.Index(msg, "{")
 	topic := msg[:i]
-	replyRaw := msg[i:]
+	broadcastRaw := msg[i:]
 
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal([]byte(replyRaw), &dat); err != nil {
+	if err := json.Unmarshal([]byte(broadcastRaw), &dat); err != nil {
 		return Broadcast{}, err
 	}
 
-	replyMessage := ""
-	if dat["message"] != nil && len(dat["message"].(string)) > 0 {
-		replyMessage = dat["message"].(string)
+	if dat["reply"] == nil {
+		return Broadcast{}, fmt.Errorf("no 'reply' parameter")
 	}
 
-	reply := Reply{
-		Status:  dat["status"].(string),
-		Message: replyMessage,
-		Params:  dat["params"].(map[string]interface{}),
+	reply, replyErr := ParseJsonReply(dat["reply"].(map[string]interface{}))
+	if replyErr != nil {
+		return Broadcast{}, replyErr
 	}
 
 	return Broadcast{Topic: topic, reply: reply}, nil
