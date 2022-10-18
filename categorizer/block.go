@@ -47,6 +47,10 @@ func (b *Block) SetBlockNumber(stmt *sql.Stmt, n int) bool {
 	return true
 }
 
+func (b *Block) SetBlockNumberWithoutDb(n int) {
+	b.syncedBlockNumber = n
+}
+
 func New(networkId string, abiHash string, address string, syncedBlockNumber int) Block {
 	return Block{
 		networkId:         networkId,
