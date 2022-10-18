@@ -2,7 +2,9 @@ package static
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/topic"
 
 	zmq "github.com/pebbe/zmq4"
@@ -56,8 +58,43 @@ func NewConfiguration(body map[string]interface{}) *Configuration {
 }
 
 // Load Configuration from sds-static controller
-func RemoteConfigByTopic(sock *zmq.Socket, t *topic.Topic) Configuration {
-	return Configuration{}
+func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "configuration_get",
+		Param: map[string]interface{}{
+			"organization": t.Organization,
+			"project":      t.Project,
+			"group":        t.Group,
+			"network_id":   t.NetworkId,
+			"name":         t.Name,
+		},
+	}
+	if _, err := socket.SendMessage(request.ToString()); err != nil {
+		fmt.Println("Failed to send a command for abi getting from static controller")
+		return nil, fmt.Errorf("sending: %w", err)
+	}
+
+	// Wait for reply.
+	r, err := socket.RecvMessage(0)
+	if err != nil {
+		fmt.Println("Failed to receive reply from static controller")
+		return nil, fmt.Errorf("receiving: %w", err)
+	}
+
+	fmt.Println(r)
+	reply, err := message.ParseReply(r)
+	if err != nil {
+		fmt.Println("Failed to parse abi reply")
+		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
+	}
+	if !reply.IsOK() {
+		fmt.Println("The static server returned failure")
+		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
+	}
+
+	returnedSmartcontract := reply.Params["configuration"].(map[string]interface{})
+	return NewConfiguration(returnedSmartcontract), nil
 }
 
 func (c *Configuration) ToJSON() map[string]interface{} {
