@@ -134,6 +134,47 @@ func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []*Smartcon
 	return smartcontracts
 }
 
+func FilterSmartcontractKeys(socket *zmq.Socket, tf *topic.TopicFilter) []SmartcontractKey {
+	// Send hello.
+	request := message.Request{
+		Command: "smartcontract_key_filter",
+		Param: map[string]interface{}{
+			"topic_filter": tf.ToJSON(),
+		},
+	}
+	fmt.Println("Sending message to STATIC server to get abi. The mesage sent to server")
+	fmt.Println(request.ToString())
+	if _, err := socket.SendMessage(request.ToString()); err != nil {
+		fmt.Println("Failed to send a command for abi getting from static controller", err.Error())
+		return []SmartcontractKey{}
+	}
+
+	// Wait for reply.
+	r, err := socket.RecvMessage(0)
+	if err != nil {
+		fmt.Println("Failed to receive reply from static controller", err.Error())
+		return []SmartcontractKey{}
+	}
+
+	reply, err := message.ParseReply(r)
+	if err != nil {
+		fmt.Println("Failed to parse reply", err.Error())
+		return []SmartcontractKey{}
+	}
+	if !reply.IsOK() {
+		fmt.Println("The static server returned failure: ", reply.Message)
+		return []SmartcontractKey{}
+	}
+
+	rawKeys := reply.Params["smartcontract_keys"].([]string)
+	var keys []SmartcontractKey = make([]SmartcontractKey, len(rawKeys))
+	for i, rawKey := range rawKeys {
+		keys[i] = SmartcontractKey(rawKey)
+	}
+
+	return keys
+}
+
 func GetRemoteSmartcontract(socket *zmq.Socket, networkId string, address string) (*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
