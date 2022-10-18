@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type Reply struct {
@@ -48,6 +49,14 @@ func ParseReply(msgs []string) (Reply, error) {
 
 	if err := json.Unmarshal([]byte(msg), &dat); err != nil {
 		return Reply{}, err
+	}
+
+	return ParseJsonReply(dat)
+}
+
+func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
+	if dat["status"] == nil {
+		return Reply{}, fmt.Errorf("no 'status' parameter")
 	}
 
 	replyMessage := ""
