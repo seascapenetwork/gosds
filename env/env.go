@@ -86,3 +86,11 @@ func PublisherController() string {
 func PublisherControllerPort() string {
 	return GetString("PUBLISHER_CONTROLLER_PORT")
 }
+
+func Reader() string {
+	return GetString("READER_HOST") + ":" + ReaderPort()
+}
+
+func ReaderPort() string {
+	return GetString("READER_PORT")
+}
