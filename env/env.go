@@ -48,7 +48,7 @@ func SpaghettiControllerPort() string {
 }
 
 func CategorizerController() string {
-	return GetString("CATEGORIZER_HOST") + ":" + SpaghettiControllerPort()
+	return GetString("CATEGORIZER_HOST") + ":" + CategorizerControllerPort()
 }
 
 func CategorizerControllerPort() string {
@@ -56,7 +56,7 @@ func CategorizerControllerPort() string {
 }
 
 func CategorizerPublisher() string {
-	return GetString("CATEGORIZER_PUBLISHER_HOST") + ":" + SpaghettiControllerPort()
+	return GetString("CATEGORIZER_PUBLISHER_HOST") + ":" + CategorizerPublisherPort()
 }
 
 func CategorizerPublisherPort() string {
