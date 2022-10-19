@@ -20,9 +20,9 @@ func (r *Reply) IsOK() bool { return r.Status == "ok" || r.Status == "OK" }
 /* Convert to format understood by the protocol */
 func (reply *Reply) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"status":   reply.Status,
-		"message:": reply.Message,
-		"params":   reply.Params,
+		"status":  reply.Status,
+		"message": reply.Message,
+		"params":  reply.Params,
 	}
 }
 
