@@ -31,7 +31,7 @@ func New(organization string, project string, networkId string, group string, na
 func (t *Topic) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"organization": t.Organization,
-		"project:":     t.Project,
+		"project":      t.Project,
 		"network_id":   t.NetworkId,
 		"group":        t.Group,
 		"name":         t.Name,
