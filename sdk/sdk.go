@@ -4,16 +4,48 @@ The following commands are available in this SDK:
 1. Subscribe - subscribe for events
 2. Sign - send a transaction to the blockchain
 3. AddToPool - send a transaction to the pool that will be broadcasted to the blockchain bundled.
+4. Read - read a smartcontract information
 
+
+Usage
+
+----------------------------------------------------------------
+example of reading smartcontract data
+
+   import (
+	"github.com/blocklords/gosds/sdk"
+	"github.com/blocklords/gosds/topic"
+   )
+
+   func test() {
+	// returns sdk.Reader
+	reader := sdk.NewReader("address", "gateway host")
+	// gosds.topic.Topic
+	importAddressTopic := topic.ParseString("metaking.blocklords.11155111.transfer.ImportExportManager.accountHodlerOf")
+	args := ["user address"]
+
+	// returns gosds.message.Reply
+	reply := reader.Read(importAddressTopic, args)
+
+	if !reply.IsOk() {
+		panic(fmt.Errorf("failed to read smartcontract data: %w", reply.Message))
+	}
+
+	fmt.Println("The user's address is: ", reply.Params["result"].(string))
+   }
 */
 package sdk
 
 import (
-	"fmt"
+	"github.com/blocklords/gosds/sdk/reader"
 )
 
-var Version string = "1.0.0"
+var Version string = "Seascape GoSDS version: 0.0.4"
 
-func PrintVersion() {
-	fmt.Println("[gosds] " + Version)
+// Returns a new reader.Reader.
+//
+// The host is the link to the SDS Gateway.
+// The address argument is the wallet address that is allowed to read.
+func NewReader(host string, address string) *reader.Reader {
+	return reader.NewReader(host, address)
 }
