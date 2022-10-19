@@ -149,6 +149,39 @@ func GetAll(db *sql.DB, networkId string) []Block {
 	return blocks
 }
 
+func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "get",
+		Param: map[string]interface{}{
+			"networkId": networkId,
+			"address":   address,
+		},
+	}
+	if _, err := socket.SendMessage(request.ToString()); err != nil {
+		return nil, fmt.Errorf("sending: %w", err)
+	}
+
+	// Wait for reply.
+	r, err := socket.RecvMessage(0)
+	if err != nil {
+		return nil, fmt.Errorf("receiving from SDS Categorizer for 'get' command: %w", err)
+	}
+
+	fmt.Println(r)
+	reply, err := message.ParseReply(r)
+	if err != nil {
+		return nil, fmt.Errorf("categorizer block invalid Reply: %w", err)
+	}
+	if !reply.IsOK() {
+		return nil, fmt.Errorf("categorizer block reply status is not ok: %s", reply.Message)
+	}
+
+	returnedBlock := reply.Params["block"].(interface{})
+	b := ParseJSON(returnedBlock.(map[string]interface{}))
+	return b, nil
+}
+
 func RemoteGetAll(socket *zmq.Socket) ([]*Block, error) {
 	// Send hello.
 	request := message.Request{
