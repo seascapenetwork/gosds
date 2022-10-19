@@ -3,6 +3,7 @@ package static
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/topic"
@@ -40,6 +41,11 @@ func (c *Smartcontract) KeyString() SmartcontractKey {
 
 func (c *Smartcontract) SetExists(exists bool) {
 	c.exists = exists
+}
+
+func (k *SmartcontractKey) Decompose() (string, string) {
+	str := strings.Split(string(*k), ".")
+	return str[0], str[1]
 }
 
 func NewSmartcontract(body map[string]interface{}) *Smartcontract {
