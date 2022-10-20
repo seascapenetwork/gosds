@@ -94,3 +94,11 @@ func Reader() string {
 func ReaderPort() string {
 	return GetString("READER_PORT")
 }
+
+func Publisher() string {
+	return GetString("PUBLISHER_HOST") + ":" + PublisherPort()
+}
+
+func PublisherPort() string {
+	return GetString("PUBLISHER_PORT")
+}
