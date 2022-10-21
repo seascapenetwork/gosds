@@ -38,9 +38,10 @@ package sdk
 
 import (
 	"github.com/blocklords/gosds/sdk/reader"
+	"github.com/blocklords/gosds/sdk/subscriber"
 )
 
-var Version string = "Seascape GoSDS version: 0.0.4"
+var Version string = "Seascape GoSDS version: 0.0.8"
 
 // Returns a new reader.Reader.
 //
@@ -48,4 +49,9 @@ var Version string = "Seascape GoSDS version: 0.0.4"
 // The address argument is the wallet address that is allowed to read.
 func NewReader(host string, address string) *reader.Reader {
 	return reader.NewReader(host, address)
+}
+
+// Returns a new subscriber
+func NewSubscriber(host string, sub string, address string) *subscriber.Subscriber {
+	return subscriber.NewSubscriber(host, sub, address)
 }
