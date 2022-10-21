@@ -17,20 +17,24 @@ func ReqReply(host string, req message.Request) message.Reply {
 
 	conErr := socket.Connect(host)
 	if conErr != nil {
+		socket.Close()
 		return message.Fail(`remote: failed to connect to the SDS Gateway: ` + conErr.Error())
 	}
 
 	if _, err := socket.SendMessage(req.ToString()); err != nil {
+		socket.Close()
 		return message.Fail("smartcontract_read command sending error: " + err.Error())
 	}
 
 	replyMsg, err := socket.RecvMessage(0)
 	if err != nil {
+		socket.Close()
 		return message.Fail("Failed to read message: " + err.Error())
 	}
 
 	reply, err := message.ParseReply(replyMsg)
 	if err != nil {
+		socket.Close()
 		return message.Fail("parse error of SDS Gateway reply: " + err.Error())
 	}
 
