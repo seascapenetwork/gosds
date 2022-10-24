@@ -5,6 +5,14 @@ import (
 	"strconv"
 )
 
+type Env struct {
+	service       string
+	publisherHost string
+	publisherPort string
+	port          string
+	host          string
+}
+
 func GetString(name string) string {
 	value := os.Getenv(name)
 	if len(value) == 0 {
@@ -29,76 +37,71 @@ func GetNumeric(name string) uint {
 	return uint(num)
 }
 
-// Returns the path of Spaghetti Publisher as host:port
-func SpaghettiPublisher() string {
-	return GetString("SPAGHETTI_PUBLISHER_HOST") + ":" + SpaghettiPublisherPort()
+func Spaghetti() *Env   { return Get("SPAGHETTI") }
+func Categorizer() *Env { return Get("CATEGORIZER") }
+func Static() *Env      { return Get("STATIC") }
+func Gateway() *Env     { return Get("GATEWAY") }
+func Publisher() *Env   { return Get("PUBLISHER") }
+func Reader() *Env      { return Get("READER") }
+
+// env.Get("SPAGHETTI").
+func Get(service string) *Env {
+	host := GetString(service + "_HOST")
+	port := GetString(service + "_PORT")
+	publisherHost := GetString(service + "_PUBLISHER_HOST")
+	publisherPort := GetString(service + "_PUBLISHER_PORT")
+
+	return &Env{service: service, host: host, port: port, publisherHost: publisherHost, publisherPort: publisherPort}
 }
 
-func SpaghettiPublisherPort() string {
-	return GetString("SPAGHETTI_PUBLISHER_PORT")
+func (e *Env) Url() string {
+	return e.host + ":" + e.port
 }
 
-// Returns the path of Spaghetti Controller as host:port
-func SpaghettiController() string {
-	return GetString("SPAGHETTI_INTERNAL_HOST") + ":" + SpaghettiControllerPort()
+func (e *Env) PublisherUrl() string {
+	return e.publisherHost + ":" + e.publisherPort
 }
 
-func SpaghettiControllerPort() string {
-	return GetString("SPAGHETTI_INTERNAL_PORT")
+func (e *Env) Port() string {
+	return e.port
 }
 
-func CategorizerController() string {
-	return GetString("CATEGORIZER_HOST") + ":" + CategorizerControllerPort()
+func (e *Env) PortEnv() string {
+	return GetString(e.service + "_PORT")
 }
 
-func CategorizerControllerPort() string {
-	return GetString("CATEGORIZER_PORT")
+func (e *Env) Host() string {
+	return e.host
 }
 
-func CategorizerPublisher() string {
-	return GetString("CATEGORIZER_PUBLISHER_HOST") + ":" + CategorizerPublisherPort()
+func (e *Env) HostEnv() string {
+	return GetString(e.service + "_HOST")
 }
 
-func CategorizerPublisherPort() string {
-	return GetString("CATEGORIZER_PUBLISHER_PORT")
+func (e *Env) PublisherHost() string {
+	return e.publisherHost
 }
 
-func StaticController() string {
-	return GetString("STATIC_HOST") + ":" + StaticPort()
+func (e *Env) PublisherHostEnv() string {
+	return GetString(e.service + "_PUBLISHER_HOST")
 }
 
-func StaticPort() string {
-	return GetString("STATIC_PORT")
+func (e *Env) PublisherPort() string {
+	return e.publisherPort
 }
 
-func Gateway() string {
-	return GetString("GATEWAY") + ":" + GatewayPort()
+func (e *Env) PublisherPortEnv() string {
+	return GetString(e.service + "_PUBLISHER_PORT")
 }
 
-func GatewayPort() string {
-	return GetString("GATEWAY_PORT")
+func (e *Env) UrlExist() bool {
+	return len(e.port) > 0 && len(e.host) > 0
 }
 
-func PublisherController() string {
-	return GetString("PUBLISHER_CONTROLLER_HOST") + ":" + PublisherControllerPort()
+func (e *Env) PortExist() bool {
+	return len(e.port) > 0
 }
 
-func PublisherControllerPort() string {
-	return GetString("PUBLISHER_CONTROLLER_PORT")
-}
-
-func Reader() string {
-	return GetString("READER_HOST") + ":" + ReaderPort()
-}
-
-func ReaderPort() string {
-	return GetString("READER_PORT")
-}
-
-func Publisher() string {
-	return GetString("PUBLISHER_HOST") + ":" + PublisherPort()
-}
-
-func PublisherPort() string {
-	return GetString("PUBLISHER_PORT")
+func (e *Env) PublisherExist() bool {
+	return len(e.publisherHost) > 0 && len(e.publisherPort) > 0
 }
