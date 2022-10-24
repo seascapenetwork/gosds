@@ -15,7 +15,7 @@ func ReqReply(host string, req message.Request) message.Reply {
 	}
 	defer socket.Close()
 
-	conErr := socket.Connect(host)
+	conErr := socket.Connect("tcp://" + host)
 	if conErr != nil {
 		socket.Close()
 		return message.Fail(`remote: failed to connect to the SDS Gateway: ` + conErr.Error())
