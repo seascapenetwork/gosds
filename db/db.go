@@ -7,6 +7,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+func EnvVars() []string {
+	return []string{
+		"DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME",
+	}
+}
+
 func getConf(name string) string {
 	value := os.Getenv("DB_" + name)
 	if len(value) == 0 {
