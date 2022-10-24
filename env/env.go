@@ -15,23 +15,17 @@ type Env struct {
 }
 
 func GetString(name string) string {
-	value := os.Getenv(name)
-	if len(value) == 0 {
-		println("no " + name + "' environment variable set")
-	}
-	return value
+	return os.Getenv(name)
 }
 
 func GetNumeric(name string) uint {
 	value := os.Getenv(name)
 	if len(value) == 0 {
-		println("no " + name + "' environment variable set")
 		return 0
 	}
 
 	num, err := strconv.ParseUint(value, 10, 64)
 	if err != nil {
-		println("invalid number format " + err.Error())
 		return 0
 	}
 
