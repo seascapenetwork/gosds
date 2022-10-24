@@ -1,6 +1,7 @@
 package subscriber
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/blocklords/gosds/message"
@@ -15,21 +16,17 @@ type Subscriber struct {
 	Host    string // SDS Gateway host
 	Sub     string // SDS Publisher host
 	Address string // Account address granted for reading
+	timer   *time.Timer
 }
 
 func NewSubscriber(host string, sub string, address string) *Subscriber {
 	return &Subscriber{Host: host, Sub: sub, Address: address}
 }
 
-func (s *Subscriber) subscribe(t *topic.TopicFilter) {
+func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
 	time.Sleep(time.Millisecond * time.Duration(100))
-
-	sender, senderErr := remote.NewPair(s.Address, true)
-	if senderErr != nil {
-		panic(senderErr)
-	}
 
 	msg := message.Request{
 		Command: "subscribe",
@@ -41,18 +38,24 @@ func (s *Subscriber) subscribe(t *topic.TopicFilter) {
 
 	subscribed := remote.ReqReply(s.Host, msg)
 	if !subscribed.IsOK() {
-		sender.Send(subscribed.ToString(), 0)
+		ch <- subscribed
 		return
 	}
 
-	go s.heartbeat(sender)
+	s.timer = time.AfterFunc(time.Second*time.Duration(10), func() {
+		ch <- message.Reply{Status: "fail", Message: "Server is not responding"}
+	})
+
+	go s.heartbeat(ch)
 }
 
-func (s *Subscriber) heartbeat(timeout *zmq.Socket) {
+func (s *Subscriber) heartbeat(ch chan message.Reply) {
 	for {
+		s.timer.Reset(time.Second * time.Duration(10))
+
 		heartbeatReply := Heartbeat(s)
 		if !heartbeatReply.IsOK() {
-			timeout.Send(heartbeatReply.ToString(), 0)
+			ch <- heartbeatReply
 			break
 		}
 
@@ -60,58 +63,51 @@ func (s *Subscriber) heartbeat(timeout *zmq.Socket) {
 	}
 }
 
-func (s *Subscriber) loop(sub *zmq.Socket, read *zmq.Socket, ch chan message.Broadcast) {
-	poller := zmq.NewPoller()
-	poller.Add(sub, zmq.POLLIN)
-	poller.Add(read, zmq.POLLIN)
+// func (s *Subscriber) loop(sub *zmq.Socket, read *zmq.Socket, ch chan message.Broadcast) {
+func (s *Subscriber) loop(sub *zmq.Socket, ch chan message.Broadcast) {
+	//  Process messages from both sockets
+	//  We prioritize traffic from the task ventilator
 
-LOOP:
 	for {
-		sockets, _ := poller.Poll(-1)
-		for _, socket := range sockets {
-			switch sock := socket.Socket; sock {
-			case sub:
-				msg_raw, _ := sock.RecvMessage(0)
-				b, err := message.ParseBroadcast(msg_raw)
-				if err != nil {
-					ch <- message.NewBroadcast(s.Address, message.Reply{Status: "fail", Message: "Error when parsing message " + err.Error()})
-					break LOOP
-				}
+		msg_raw, err := sub.RecvMessage(0)
+		if err != nil {
+			fmt.Println("error in sub receive")
+			fmt.Println(err)
+		}
+		if len(msg_raw) == 0 {
+			break
+		}
 
-				//  Send results to sink
-				ch <- b
+		b, err := message.ParseBroadcast(msg_raw)
+		if err != nil {
+			ch <- message.NewBroadcast(s.Address, message.Reply{Status: "fail", Message: "Error when parsing message " + err.Error()})
+			break
+		}
 
-				if !b.IsOK() {
-					break LOOP //  Exit loop
-				}
-			case read:
-				ch <- message.NewBroadcast(s.Address, message.Reply{Status: "fail", Message: "Stop the loop"})
-				//  Any controller command acts as 'KILL'
-				break LOOP //  Exit loop
-			}
+		//  Send results to sink
+		ch <- b
+
+		if !b.IsOK() {
+			break //  Exit loop
 		}
 	}
 }
 
-func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.Broadcast) {
-	go s.subscribe(t)
+func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.Broadcast, chan message.Reply) {
+	hb := make(chan message.Reply)
+
+	go s.subscribe(t, hb)
 
 	// Run the listener
 	sub, err := remote.NewSub(s.Sub, s.Address)
 	if err != nil {
-		return message.Fail("Failed to establish a connection with SDS Publisher: " + err.Error()), nil
-	}
-
-	// Run heartbeat, subscription status reader
-	read, readErr := remote.NewPair(s.Address, false)
-	if readErr != nil {
-		return message.Fail("Internal SDK Error: " + readErr.Error()), nil
+		return message.Fail("Failed to establish a connection with SDS Publisher: " + err.Error()), nil, nil
 	}
 
 	// now create a heartbeat timer
 	ch := make(chan message.Broadcast)
 
-	go s.loop(sub, read, ch)
+	go s.loop(sub, ch)
 
-	return message.Reply{Status: "OK"}, ch
+	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, ch, hb
 }
