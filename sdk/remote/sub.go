@@ -13,7 +13,6 @@ func NewSub(host string, topic string) (*zmq.Socket, error) {
 	}
 	defer socket.Close()
 
-	conErr := socket.Connect(host)
 	conErr := socket.Connect("tcp://" + host)
 	if conErr != nil {
 		return nil, conErr
