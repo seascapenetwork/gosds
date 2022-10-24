@@ -38,6 +38,8 @@ func Static() *Env      { return Get("STATIC") }
 func Gateway() *Env     { return Get("GATEWAY") }
 func Publisher() *Env   { return Get("PUBLISHER") }
 func Reader() *Env      { return Get("READER") }
+func Writer() *Env      { return Get("WRITER") }
+func Bundle() *Env      { return Get("BUNDLE") }
 
 // env.Get("SPAGHETTI").
 func Get(service string) *Env {
