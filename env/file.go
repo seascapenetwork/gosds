@@ -24,10 +24,7 @@ func LoadAnyEnv() error {
 		return optErr
 	}
 
-	dotErr := godotenv.Load()
-	if dotErr != nil {
-		return dotErr
-	}
+	godotenv.Load()
 
 	if opts != nil {
 		return godotenv.Load(opts...)
