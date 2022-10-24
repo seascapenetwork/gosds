@@ -48,14 +48,14 @@ func ReqReply(host string, req message.Request) message.Reply {
 
 func ReqSocket(e *env.Env) *zmq.Socket {
 	if !e.UrlExist() {
-		panic(fmt.Errorf("missing .env variable: Please set the SDS Categorizer host"))
+		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port"))
 	}
 
-	categorizerSocket, _ := zmq.NewSocket(zmq.REQ)
-	if err := categorizerSocket.Connect("tcp://" + e.Url()); err != nil {
-		panic(fmt.Errorf("categorizer connect: %w", err))
+	sock, _ := zmq.NewSocket(zmq.REQ)
+	if err := sock.Connect("tcp://" + e.Url()); err != nil {
+		panic(fmt.Errorf("error '"+e.ServiceName()+"' connect: %w", err))
 	}
-	defer categorizerSocket.Close()
+	defer sock.Close()
 
-	return categorizerSocket
+	return sock
 }

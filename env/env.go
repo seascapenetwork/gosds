@@ -3,6 +3,7 @@ package env
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Env struct {
@@ -54,6 +55,9 @@ func Get(service string) *Env {
 	return &Env{service: service, host: host, port: port, publisherHost: publisherHost, publisherPort: publisherPort}
 }
 
+func (e *Env) ServiceName() string {
+	return "SDS " + strings.Title(strings.ToLower(e.service))
+}
 func (e *Env) Url() string {
 	return e.host + ":" + e.port
 }
