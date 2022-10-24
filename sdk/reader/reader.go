@@ -16,7 +16,7 @@ func NewReader(host string, address string) *Reader {
 	return &Reader{host: host, address: address}
 }
 
-func (r *Reader) Read(t *topic.Topic, args []interface{}) message.Reply {
+func (r *Reader) Read(t topic.Topic, args map[string]interface{}) message.Reply {
 	if t.Level() != topic.LEVEL_FULL {
 		return message.Fail(`Topic should contain method name`)
 	}
