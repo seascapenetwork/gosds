@@ -5,8 +5,8 @@ package controller
 import (
 	"database/sql"
 	"fmt"
-	"time"
 
+	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
 
 	zmq "github.com/pebbe/zmq4"
@@ -17,21 +17,26 @@ type CommandHandlers map[string]interface{}
 /*
 Creates a new Reply controller using ZeroMQ
 */
-func ReplyController(db *sql.DB, commands CommandHandlers, port string) {
+func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env) {
+	if !e.PortExist() {
+		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' port"))
+	}
+
 	// Socket to talk to clients
 	socket, _ := zmq.NewSocket(zmq.REP)
 	defer socket.Close()
-	if err := socket.Bind("tcp://*:" + port); err != nil {
-		println("Could not start a server: ", err.Error())
+	if err := socket.Bind("tcp://*:" + e.Port()); err != nil {
+		println("error to bind socket for '"+e.ServiceName()+"': ", err.Error())
 		panic(err)
 	}
 
-	println("Waiting for commands on port " + port)
+	println("success! '" + e.ServiceName() + "' is receives commands on port " + e.Port())
 
 	for {
 		msg_raw, err := socket.RecvMessage(0)
 		if err != nil {
 			println(fmt.Errorf("receiving: %w", err))
+			continue
 		}
 		request, err := message.ParseRequest(msg_raw)
 		if err != nil {
@@ -54,11 +59,8 @@ func ReplyController(db *sql.DB, commands CommandHandlers, port string) {
 
 		reply := commands[request.Command].(func(*sql.DB, message.Request) message.Reply)(db, request)
 
-		// Do some 'work'
-		time.Sleep(time.Second)
-
 		if _, err := socket.SendMessage(reply.ToString()); err != nil {
-			println(fmt.Errorf("sending reply: %w", err))
+			println(fmt.Errorf("error sending controller reply: %w", err))
 		}
 	}
 }
