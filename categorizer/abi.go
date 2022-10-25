@@ -3,6 +3,7 @@ package categorizer
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -20,6 +21,16 @@ type Abi struct {
 
 func (a *Abi) StringReader() *strings.Reader {
 	return strings.NewReader(string(a.staticAbi.Bytes))
+}
+
+func (a *Abi) GetMethod(method string) (*abi.Method, error) {
+	for _, m := range a.i.Methods {
+		if m.Name == method {
+			return &m, nil
+		}
+	}
+
+	return nil, errors.New("no method found")
 }
 
 func (a *Abi) ParseTxInput(data string) (string, map[string]interface{}, error) {
