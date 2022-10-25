@@ -32,3 +32,20 @@ func (r *Writer) Write(t topic.Topic, args map[string]interface{}) message.Reply
 
 	return remote.ReqReply(r.host, msg)
 }
+
+func (r *Writer) AddToPool(t topic.Topic, args map[string]interface{}) message.Reply {
+	if t.Level() != topic.LEVEL_FULL {
+		return message.Fail(`Topic should contain method name`)
+	}
+
+	msg := message.Request{
+		Command: "pool_add",
+		Param: map[string]interface{}{
+			"topic_string": t.ToString(topic.LEVEL_FULL),
+			"arguments":    args,
+			"address":      r.address,
+		},
+	}
+
+	return remote.ReqReply(r.host, msg)
+}
