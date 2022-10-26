@@ -107,10 +107,10 @@ func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []*Smartcon
 			"topic_filter": tf.ToJSON(),
 		},
 	}
-	fmt.Println("Sending message to STATIC server to get abi. The mesage sent to server")
+	fmt.Println("Sending message to STATIC server to get smartcontracts. The mesage sent to server")
 	fmt.Println(request.ToString())
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller", err.Error())
+		fmt.Println("Failed to send a command for smartcontracts getting from static controller", err.Error())
 		return []*Smartcontract{}
 	}
 
@@ -123,7 +123,7 @@ func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []*Smartcon
 
 	reply, err := message.ParseReply(r)
 	if err != nil {
-		fmt.Println("Failed to parse abi reply", err.Error())
+		fmt.Println("Failed to parse smartcontracts reply", err.Error())
 		return []*Smartcontract{}
 	}
 	if !reply.IsOK() {
@@ -148,10 +148,10 @@ func FilterSmartcontractKeys(socket *zmq.Socket, tf *topic.TopicFilter) []Smartc
 			"topic_filter": tf.ToJSON(),
 		},
 	}
-	fmt.Println("Sending message to STATIC server to get abi. The mesage sent to server")
+	fmt.Println("Sending message to STATIC server to get smartcontract keys. The mesage sent to server")
 	fmt.Println(request.ToString())
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller", err.Error())
+		fmt.Println("Failed to send a command for smartcontract keys getting from static controller", err.Error())
 		return []SmartcontractKey{}
 	}
 
@@ -191,25 +191,25 @@ func GetRemoteSmartcontract(socket *zmq.Socket, networkId string, address string
 		},
 	}
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller")
+		fmt.Println("Failed to send a command for smartcontract getting from static controller", err.Error())
 		return nil, fmt.Errorf("sending: %w", err)
 	}
 
 	// Wait for reply.
 	r, err := socket.RecvMessage(0)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller")
+		fmt.Println("Failed to receive reply from static controller", err.Error())
 		return nil, fmt.Errorf("receiving: %w", err)
 	}
 
 	fmt.Println(r)
 	reply, err := message.ParseReply(r)
 	if err != nil {
-		fmt.Println("Failed to parse abi reply")
+		fmt.Println("Failed to parse smartcontract reply", err.Error())
 		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
 	}
 	if !reply.IsOK() {
-		fmt.Println("The static server returned failure")
+		fmt.Println("The static server returned failure", reply.Message)
 		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
 	}
 

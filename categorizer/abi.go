@@ -100,7 +100,7 @@ func AbiGet(socket zmq.Socket, abiHash string) (Abi, error) {
 	fmt.Println("Sending message to STATIC server to get abi. The mesage sent to server")
 	fmt.Println(abiGetRequest.ToString())
 	if _, err := socket.SendMessage(abiGetRequest.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller")
+		fmt.Println("Failed to send a command for abi getting from static controller", err.Error())
 		return Abi{}, fmt.Errorf("sending: %w", err)
 	}
 

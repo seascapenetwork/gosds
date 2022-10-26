@@ -90,10 +90,10 @@ func (b *Block) Save(socket *zmq.Socket) error {
 		Command: "categorizer_block_set",
 		Param:   b.ToJSON(),
 	}
-	fmt.Println("Sending message to STATIC server to get abi. The mesage sent to server")
+	fmt.Println("Sending message to SDS-Categorizer server to save new block. The mesage sent to server")
 	fmt.Println(request.ToString())
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller")
+		fmt.Println("Failed to send a command to save new block", err.Error())
 		return fmt.Errorf("sending: %w", err)
 	}
 
@@ -189,7 +189,7 @@ func RemoteGetAll(socket *zmq.Socket) ([]*Block, error) {
 		Param:   map[string]interface{}{},
 	}
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller")
+		fmt.Println("Failed to get all the blocks from SDS-Categorizer", err.Error())
 		return nil, fmt.Errorf("sending: %w", err)
 	}
 

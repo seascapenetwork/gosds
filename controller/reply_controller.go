@@ -1,5 +1,7 @@
-/*Controller package is the interface of the module.
-It acts as the input receiver for other services.*/
+/*
+Controller package is the interface of the module.
+It acts as the input receiver for other services.
+*/
 package controller
 
 import (
@@ -26,7 +28,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env) {
 	socket, _ := zmq.NewSocket(zmq.REP)
 	defer socket.Close()
 	if err := socket.Bind("tcp://*:" + e.Port()); err != nil {
-		println("error to bind socket for '"+e.ServiceName()+"': ", err.Error())
+		println("error to bind socket for '"+e.ServiceName()+" - "+e.Url()+"' : ", err.Error())
 		panic(err)
 	}
 

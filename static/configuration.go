@@ -71,25 +71,25 @@ func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, er
 		},
 	}
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller")
+		fmt.Println("Failed to get config from SDS-Static", err.Error())
 		return nil, fmt.Errorf("sending: %w", err)
 	}
 
 	// Wait for reply.
 	r, err := socket.RecvMessage(0)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller")
+		fmt.Println("Failed to receive reply from static controller", err.Error())
 		return nil, fmt.Errorf("receiving: %w", err)
 	}
 
 	fmt.Println(r)
 	reply, err := message.ParseReply(r)
 	if err != nil {
-		fmt.Println("Failed to parse abi reply")
+		fmt.Println("Failed to parse abi reply", err.Error())
 		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
 	}
 	if !reply.IsOK() {
-		fmt.Println("The static server returned failure")
+		fmt.Println("The static server returned failure", reply.Messge)
 		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
 	}
 
