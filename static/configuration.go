@@ -89,7 +89,7 @@ func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, er
 		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
 	}
 	if !reply.IsOK() {
-		fmt.Println("The static server returned failure", reply.Messge)
+		fmt.Println("The static server returned failure", reply.Message)
 		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
 	}
 
