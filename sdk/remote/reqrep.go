@@ -51,11 +51,14 @@ func ReqSocket(e *env.Env) *zmq.Socket {
 		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port"))
 	}
 
+	fmt.Println("creating req socket to " + e.ServiceName() + " service url " + e.Url())
+
 	sock, _ := zmq.NewSocket(zmq.REQ)
+	defer sock.Close()
 	if err := sock.Connect("tcp://" + e.Url()); err != nil {
 		panic(fmt.Errorf("error '"+e.ServiceName()+"' connect: %w", err))
 	}
-	defer sock.Close()
+	fmt.Println("created socket for "+e.ServiceName(), sock)
 
 	return sock
 }
