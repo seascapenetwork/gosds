@@ -40,6 +40,7 @@ func Publisher() *Env   { return Get("PUBLISHER") }
 func Reader() *Env      { return Get("READER") }
 func Writer() *Env      { return Get("WRITER") }
 func Bundle() *Env      { return Get("BUNDLE") }
+func Log() *Env         { return Get("LOG") }
 
 // env.Get("SPAGHETTI").
 func Get(service string) *Env {
