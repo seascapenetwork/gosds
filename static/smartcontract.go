@@ -100,7 +100,6 @@ func (smartcontract *Smartcontract) ToString() string {
 
 // Returns list of smartcontracts by topic filter in remote Static service
 func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) []*Smartcontract {
-	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_filter",
 		Param: map[string]interface{}{
