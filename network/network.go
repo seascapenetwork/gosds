@@ -39,8 +39,8 @@ func GetSupportedNetworks(all bool) map[string]string {
 	return supportedNetworks
 }
 
-func GetNetworkIds(fullSupport bool) []string {
-	supportedNetworks := GetSupportedNetworks(fullSupport)
+func GetNetworkIds(all bool) []string {
+	supportedNetworks := GetSupportedNetworks(all)
 
 	ids := make([]string, 0)
 
@@ -55,7 +55,7 @@ func GetNetworkIds(fullSupport bool) []string {
 }
 
 func IsSupportedNetwork(networkId string) bool {
-	supportedNetworks := GetSupportedNetworks(true)
+	supportedNetworks := GetSupportedNetworks(ALL)
 	if len(supportedNetworks) == 0 {
 		return false
 	}
@@ -68,7 +68,7 @@ func GetProvider(networkId string) string {
 	if !IsSupportedNetwork(networkId) {
 		return ""
 	}
-	supportedNetworks := GetSupportedNetworks(true)
+	supportedNetworks := GetSupportedNetworks(ALL)
 
 	return supportedNetworks[networkId]
 }
