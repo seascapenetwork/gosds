@@ -6,6 +6,12 @@ import (
 	"strings"
 )
 
+// all networks including IMX
+const ALL = true
+
+// exclude IMX from the supported networks
+const NOT_ALL = false
+
 func GetSupportedNetworks(all bool) map[string]string {
 	env := os.Getenv("SUPPORTED_NETWORKS")
 	if len(env) == 0 {
