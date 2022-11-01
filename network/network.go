@@ -3,9 +3,10 @@ package network
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
-func GetSupportedNetworks() map[string]string {
+func GetSupportedNetworks(all bool) map[string]string {
 	env := os.Getenv("SUPPORTED_NETWORKS")
 	if len(env) == 0 {
 		panic("the environment variable 'SUPPORTED_NETWORKS' is not provided")
@@ -18,11 +19,22 @@ func GetSupportedNetworks() map[string]string {
 		panic("the environment variable 'SUPPORTED_NETWORKS' is not a valid JSON")
 	}
 
+	if all {
+		return supportedNetworks
+	}
+
+	imx := "imx"
+	for networkId := range supportedNetworks {
+		if strings.ToLower(networkId) == imx {
+			delete(supportedNetworks, networkId)
+		}
+	}
+
 	return supportedNetworks
 }
 
-func GetNetworkIds() []string {
-	supportedNetworks := GetSupportedNetworks()
+func GetNetworkIds(fullSupport bool) []string {
+	supportedNetworks := GetSupportedNetworks(fullSupport)
 
 	ids := make([]string, 0)
 
@@ -37,24 +49,20 @@ func GetNetworkIds() []string {
 }
 
 func IsSupportedNetwork(networkId string) bool {
-	supportedNetworks := GetSupportedNetworks()
+	supportedNetworks := GetSupportedNetworks(true)
 	if len(supportedNetworks) == 0 {
 		return false
 	}
 
 	_, ok := supportedNetworks[networkId]
-	if !ok {
-		return false
-	}
-
-	return true
+	return ok
 }
 
 func GetProvider(networkId string) string {
 	if !IsSupportedNetwork(networkId) {
 		return ""
 	}
-	supportedNetworks := GetSupportedNetworks()
+	supportedNetworks := GetSupportedNetworks(true)
 
 	return supportedNetworks[networkId]
 }
