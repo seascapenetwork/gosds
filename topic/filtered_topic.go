@@ -1,52 +1,55 @@
 package topic
 
-import (
-	"fmt"
-	"strings"
-)
-
 type TopicFilter struct {
-	Organization []string
-	Project      []string
-	NetworkId    []string
-	Group        []string
-	Name         []string
+	Organizations  []string
+	Projects       []string
+	NetworkIds     []string
+	Groups         []string
+	Smartcontracts []string
+	Methods        []string
+	Events         []string
 }
 
-func NewFilterTopic(organization []string, project []string, networkId []string, group []string, name []string) TopicFilter {
+func NewFilterTopic(o []string, p []string, n []string, g []string, s []string, m []string, e []string) TopicFilter {
 	return TopicFilter{
-		Organization: organization,
-		Project:      project,
-		NetworkId:    networkId,
-		Group:        group,
-		Name:         name,
+		Organizations:  o,
+		Projects:       p,
+		NetworkIds:     n,
+		Groups:         g,
+		Smartcontracts: s,
+		Methods:        m,
+		Events:         e,
 	}
 }
 
 func (t *TopicFilter) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"organization": t.Organization,
-		"project:":     t.Project,
-		"network_id":   t.NetworkId,
-		"group":        t.Group,
-		"name":         t.Name,
+		"o":  t.Organizations,
+		"p:": t.Projects,
+		"n":  t.NetworkIds,
+		"g":  t.Groups,
+		"s":  t.Smartcontracts,
+		"m":  t.Methods,
+		"e":  t.Events,
 	}
 }
 
-func (t *TopicFilter) Len(property string) int {
-	switch property {
-	case "organization":
-		return len(t.Organization)
-	case "project":
-		return len(t.Project)
-	case "network_id":
-		return len(t.NetworkId)
-	case "group":
-		return len(t.Group)
-	case "name":
-		return len(t.Name)
+func (t *TopicFilter) Len(level uint8) int {
+	switch level {
+	case ORGANIZATION_LEVEL:
+		return len(t.Organizations)
+	case PROJECT_LEVEL:
+		return len(t.Projects)
+	case NETWORK_ID_LEVEL:
+		return len(t.NetworkIds)
+	case GROUP_LEVEL:
+		return len(t.Groups)
+	case SMARTCONTRACT_LEVEL:
+		return len(t.Smartcontracts)
+	case FULL_LEVEL:
+		return len(t.Methods) + len(t.Events)
 	default:
-		return t.Len("organization") + t.Len("project") + t.Len("network_id") + t.Len("group") + t.Len("name")
+		return len(t.Organizations) + len(t.Projects) + len(t.NetworkIds) + len(t.Groups) + len(t.Smartcontracts) + len(t.Methods) + len(t.Events)
 	}
 }
 
@@ -65,20 +68,26 @@ func list(properties []string) string {
 
 func (t *TopicFilter) ToString() string {
 	str := ""
-	if len(t.Organization) > 0 {
-		str += "o:" + list(t.Organization) + ";"
+	if len(t.Organizations) > 0 {
+		str += "o:" + list(t.Organizations) + ";"
 	}
-	if len(t.Project) > 0 {
-		str += "p:" + list(t.Project) + ";"
+	if len(t.Projects) > 0 {
+		str += "p:" + list(t.Projects) + ";"
 	}
-	if len(t.NetworkId) > 0 {
-		str += "n:" + list(t.NetworkId) + ";"
+	if len(t.NetworkIds) > 0 {
+		str += "n:" + list(t.NetworkIds) + ";"
 	}
-	if len(t.Group) > 0 {
-		str += "g:" + list(t.Group) + ";"
+	if len(t.Groups) > 0 {
+		str += "g:" + list(t.Groups) + ";"
 	}
-	if len(t.Name) > 0 {
-		str += "s:" + list(t.Name) + ";"
+	if len(t.Smartcontracts) > 0 {
+		str += "s:" + list(t.Smartcontracts) + ";"
+	}
+	if len(t.Methods) > 0 {
+		str += "m:" + list(t.Methods) + ";"
+	}
+	if len(t.Events) > 0 {
+		str += "e:" + list(t.Events) + ";"
 	}
 
 	return str
@@ -86,92 +95,70 @@ func (t *TopicFilter) ToString() string {
 
 func ParseJSONToTopicFilter(obj map[string]interface{}) TopicFilter {
 	topic := TopicFilter{
-		Organization: []string{},
-		Project:      []string{},
-		NetworkId:    []string{},
-		Group:        []string{},
-		Name:         []string{},
+		Organizations:  []string{},
+		Projects:       []string{},
+		NetworkIds:     []string{},
+		Groups:         []string{},
+		Smartcontracts: []string{},
+		Methods:        []string{},
+		Events:         []string{},
 	}
 
-	if obj["network_id"] != nil {
-		network_id := obj["network_id"].([]interface{})
-		topic.NetworkId = make([]string, len(network_id))
-		for i, o := range network_id {
-			topic.NetworkId[i] = o.(string)
+	if obj["n"] != nil {
+		n := obj["n"].([]interface{})
+		topic.NetworkIds = make([]string, len(n))
+		for i, o := range n {
+			topic.NetworkIds[i] = o.(string)
 		}
 	}
 
-	if obj["organization"] != nil {
-		organizations := obj["organization"].([]interface{})
-		topic.Organization = make([]string, len(organizations))
+	if obj["o"] != nil {
+		organizations := obj["o"].([]interface{})
+		topic.Organizations = make([]string, len(organizations))
 		for i, o := range organizations {
-			topic.Organization[i] = o.(string)
+			topic.Organizations[i] = o.(string)
 		}
 	}
 
-	if obj["project"] != nil {
-		project := obj["project"].([]interface{})
-		topic.Project = make([]string, len(project))
-		for i, o := range project {
-			topic.Project[i] = o.(string)
+	if obj["p"] != nil {
+		projects := obj["p"].([]interface{})
+		topic.Projects = make([]string, len(projects))
+		for i, o := range projects {
+			topic.Projects[i] = o.(string)
 		}
 	}
 
-	if obj["group"] != nil {
-		group := obj["group"].([]interface{})
-		topic.Group = make([]string, len(group))
-		for i, o := range group {
-			topic.Group[i] = o.(string)
+	if obj["g"] != nil {
+		g := obj["g"].([]interface{})
+		topic.Groups = make([]string, len(g))
+		for i, o := range g {
+			topic.Groups[i] = o.(string)
 		}
 	}
 
-	if obj["name"] != nil {
-		name := obj["name"].([]interface{})
-		topic.Name = make([]string, len(name))
-		for i, o := range name {
-			topic.Name[i] = o.(string)
+	if obj["s"] != nil {
+		s := obj["s"].([]interface{})
+		topic.Smartcontracts = make([]string, len(s))
+		for i, o := range s {
+			topic.Smartcontracts[i] = o.(string)
+		}
+	}
+
+	if obj["m"] != nil {
+		m := obj["m"].([]interface{})
+		topic.Methods = make([]string, len(m))
+		for i, o := range m {
+			topic.Methods[i] = o.(string)
+		}
+	}
+
+	if obj["e"] != nil {
+		e := obj["e"].([]interface{})
+		topic.Events = make([]string, len(e))
+		for i, o := range e {
+			topic.Events[i] = o.(string)
 		}
 	}
 
 	return topic
-}
-
-func ParseStringToTopicFilter(topicString string) (TopicFilter, error) {
-	parts := strings.Split(topicString, ";")
-	if len(parts) < 2 {
-		return TopicFilter{}, fmt.Errorf("atleast organization and project should be provided")
-	}
-
-	if len(parts) > 6 {
-		return TopicFilter{}, fmt.Errorf("at most topic shuld be 6 level")
-	}
-
-	return TopicFilter{}, nil
-	// organization := parts[0]
-	// project := parts[1]
-	// networkId := ""
-	// group := ""
-	// name := ""
-	// method := ""
-	// if len(parts) > 2 {
-	// 	networkId = parts[2]
-	// }
-	// if len(parts) > 3 {
-	// 	group = parts[3]
-	// }
-	// if len(parts) > 4 {
-	// 	name = parts[4]
-	// }
-	// if len(parts) > 5 {
-	// 	method = parts[5]
-	// }
-
-	// return TopicFilter{
-	// 	Organization: organization,
-	// 	Project:      project,
-	// 	NetworkId:    networkId,
-	// 	Group:        group,
-	// 	Name:         name,
-	// 	Method:       method,
-	// }, nil
 }
