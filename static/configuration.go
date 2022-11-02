@@ -62,13 +62,7 @@ func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, er
 	// Send hello.
 	request := message.Request{
 		Command: "configuration_get",
-		Param: map[string]interface{}{
-			"organization": t.Organization,
-			"project":      t.Project,
-			"group":        t.Group,
-			"network_id":   t.NetworkId,
-			"name":         t.Name,
-		},
+		Param:   t.ToJSON(),
 	}
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
 		fmt.Println("Failed to get config from SDS-Static", err.Error())
