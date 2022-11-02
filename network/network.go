@@ -7,13 +7,15 @@ import (
 )
 
 // any blockchain
-const ALL = true
+const ALL int8 = 0
 
 // filter only blockchain networks with Virtual Machine.
 // "imx" will not be here.
-const WITH_VM = false
+const WITH_VM int8 = 1
 
-func GetSupportedNetworks(all bool) map[string]string {
+const WITHOUT_VM int8 = -1
+
+func GetSupportedNetworks(flag int8) map[string]string {
 	env := os.Getenv("SUPPORTED_NETWORKS")
 	if len(env) == 0 {
 		panic("the environment variable 'SUPPORTED_NETWORKS' is not provided")
@@ -26,13 +28,19 @@ func GetSupportedNetworks(all bool) map[string]string {
 		panic("the environment variable 'SUPPORTED_NETWORKS' is not a valid JSON")
 	}
 
-	if all {
+	if flag == ALL {
 		return supportedNetworks
 	}
 
+	// without VM
 	imx := "imx"
+
 	for networkId := range supportedNetworks {
 		if strings.ToLower(networkId) == imx {
+			if flag == WITH_VM {
+				delete(supportedNetworks, networkId)
+			}
+		} else if flag == WITHOUT_VM {
 			delete(supportedNetworks, networkId)
 		}
 	}
@@ -40,8 +48,8 @@ func GetSupportedNetworks(all bool) map[string]string {
 	return supportedNetworks
 }
 
-func GetNetworkIds(all bool) []string {
-	supportedNetworks := GetSupportedNetworks(all)
+func GetNetworkIds(flag int8) []string {
+	supportedNetworks := GetSupportedNetworks(flag)
 
 	ids := make([]string, 0)
 
@@ -55,8 +63,8 @@ func GetNetworkIds(all bool) []string {
 	return ids
 }
 
-func IsSupportedNetwork(networkId string, all bool) bool {
-	supportedNetworks := GetSupportedNetworks(all)
+func IsSupportedNetwork(networkId string, flag int8) bool {
+	supportedNetworks := GetSupportedNetworks(flag)
 	if len(supportedNetworks) == 0 {
 		return false
 	}
@@ -65,11 +73,11 @@ func IsSupportedNetwork(networkId string, all bool) bool {
 	return ok
 }
 
-func GetProvider(networkId string, all bool) string {
-	if !IsSupportedNetwork(networkId, all) {
+func GetProvider(networkId string, flag int8) string {
+	if !IsSupportedNetwork(networkId, flag) {
 		return ""
 	}
-	supportedNetworks := GetSupportedNetworks(all)
+	supportedNetworks := GetSupportedNetworks(flag)
 
 	return supportedNetworks[networkId]
 }
