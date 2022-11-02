@@ -6,11 +6,12 @@ import (
 	"strings"
 )
 
-// all networks including IMX
+// any blockchain
 const ALL = true
 
-// exclude IMX from the supported networks
-const NOT_ALL = false
+// filter only blockchain networks with Virtual Machine.
+// "imx" will not be here.
+const WITH_VM = false
 
 func GetSupportedNetworks(all bool) map[string]string {
 	env := os.Getenv("SUPPORTED_NETWORKS")
@@ -54,8 +55,8 @@ func GetNetworkIds(all bool) []string {
 	return ids
 }
 
-func IsSupportedNetwork(networkId string) bool {
-	supportedNetworks := GetSupportedNetworks(ALL)
+func IsSupportedNetwork(networkId string, all bool) bool {
+	supportedNetworks := GetSupportedNetworks(all)
 	if len(supportedNetworks) == 0 {
 		return false
 	}
@@ -64,11 +65,11 @@ func IsSupportedNetwork(networkId string) bool {
 	return ok
 }
 
-func GetProvider(networkId string) string {
-	if !IsSupportedNetwork(networkId) {
+func GetProvider(networkId string, all bool) string {
+	if !IsSupportedNetwork(networkId, all) {
 		return ""
 	}
-	supportedNetworks := GetSupportedNetworks(ALL)
+	supportedNetworks := GetSupportedNetworks(all)
 
 	return supportedNetworks[networkId]
 }
