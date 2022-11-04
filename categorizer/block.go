@@ -154,8 +154,8 @@ func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, er
 	request := message.Request{
 		Command: "get",
 		Param: map[string]interface{}{
-			"networkId": networkId,
-			"address":   address,
+			"network_id": networkId,
+			"address":    address,
 		},
 	}
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
@@ -177,8 +177,7 @@ func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, er
 		return nil, fmt.Errorf("categorizer block reply status is not ok: %s", reply.Message)
 	}
 
-	returnedBlock := reply.Params["block"].(interface{})
-	b := ParseJSON(returnedBlock.(map[string]interface{}))
+	b := ParseJSON(reply.Params["block"].(map[string]interface{}))
 	return b, nil
 }
 
