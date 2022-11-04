@@ -58,7 +58,7 @@ func NewConfiguration(body map[string]interface{}) *Configuration {
 }
 
 // Load Configuration from sds-static controller
-func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, error) {
+func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, *Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "configuration_get",
@@ -66,29 +66,30 @@ func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, er
 	}
 	if _, err := socket.SendMessage(request.ToString()); err != nil {
 		fmt.Println("Failed to get config from SDS-Static", err.Error())
-		return nil, fmt.Errorf("sending: %w", err)
+		return nil, nil, fmt.Errorf("sending: %w", err)
 	}
 
 	// Wait for reply.
 	r, err := socket.RecvMessage(0)
 	if err != nil {
 		fmt.Println("Failed to receive reply from static controller", err.Error())
-		return nil, fmt.Errorf("receiving: %w", err)
+		return nil, nil, fmt.Errorf("receiving: %w", err)
 	}
 
 	fmt.Println(r)
 	reply, err := message.ParseReply(r)
 	if err != nil {
 		fmt.Println("Failed to parse abi reply", err.Error())
-		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
+		return nil, nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
 	}
 	if !reply.IsOK() {
 		fmt.Println("The static server returned failure", reply.Message)
-		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
+		return nil, nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
 	}
 
-	returnedSmartcontract := reply.Params["configuration"].(map[string]interface{})
-	return NewConfiguration(returnedSmartcontract), nil
+	returnedConfig := reply.Params["configuration"].(map[string]interface{})
+	returnedSmartcontract := reply.Params["smartcontract"].(map[string]interface{})
+	return NewConfiguration(returnedConfig), NewSmartcontract(returnedSmartcontract), nil
 }
 
 func (c *Configuration) ToJSON() map[string]interface{} {
