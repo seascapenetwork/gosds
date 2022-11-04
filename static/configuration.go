@@ -35,11 +35,11 @@ func (c *Configuration) Exists() bool { return c.exists }
 // Creates a new static.Configuration class based on the given data
 func NewConfiguration(body map[string]interface{}) *Configuration {
 	conf := Configuration{
-		Organization: body["organization"].(string),
-		Project:      body["project"].(string),
-		NetworkId:    body["network_id"].(string),
-		Group:        body["group"].(string),
-		Name:         body["name"].(string),
+		Organization: body["o"].(string),
+		Project:      body["p"].(string),
+		NetworkId:    body["n"].(string),
+		Group:        body["g"].(string),
+		Name:         body["s"].(string),
 	}
 	address := ""
 	if body["address"] != nil {
@@ -93,12 +93,12 @@ func RemoteConfigByTopic(socket *zmq.Socket, t *topic.Topic) (*Configuration, er
 
 func (c *Configuration) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"name":         c.Name,
-		"network_id":   c.NetworkId,
-		"group":        c.Group,
-		"organization": c.Organization,
-		"project":      c.Project,
-		"address":      c.Address,
+		"s":       c.Name,
+		"n":       c.NetworkId,
+		"g":       c.Group,
+		"o":       c.Organization,
+		"p":       c.Project,
+		"address": c.Address,
 	}
 }
 
