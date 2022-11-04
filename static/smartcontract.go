@@ -21,6 +21,7 @@ type (
 		Txid                string
 		Deployer            string
 		StartingBlockNumber int
+		StartingTimestamp   int
 		exists              bool
 	}
 )
@@ -72,6 +73,9 @@ func NewSmartcontract(body map[string]interface{}) *Smartcontract {
 	if body["starting_block_number"] != nil {
 		smartcontract.StartingBlockNumber = int(body["starting_block_number"].(float64))
 	}
+	if body["starting_timestamp"] != nil {
+		smartcontract.StartingTimestamp = int(body["starting_timestamp"].(float64))
+	}
 
 	return &smartcontract
 }
@@ -83,6 +87,7 @@ func (smartcontract *Smartcontract) ToJSON() map[string]interface{} {
 	i["abi_hash"] = smartcontract.AbiHash
 	i["txid"] = smartcontract.Txid
 	i["starting_block_number"] = smartcontract.StartingBlockNumber
+	i["starting_timestamp"] = smartcontract.StartingTimestamp
 	i["deployer"] = smartcontract.Deployer
 
 	return i
