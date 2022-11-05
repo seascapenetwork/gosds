@@ -12,6 +12,7 @@ import (
 )
 
 type (
+	// network id + "." + address
 	SmartcontractKey string
 	Smartcontract    struct {
 		// Body abi.ABI
@@ -24,6 +25,8 @@ type (
 		StartingTimestamp   int
 		exists              bool
 	}
+	// smartcontract key => topic string
+	FilteredSmartcontractKeys map[SmartcontractKey]string
 )
 
 func CreateSmartcontractKey(networkId string, address string) SmartcontractKey {
@@ -148,7 +151,7 @@ func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) ([]*Smartco
 	return smartcontracts, topicStrings
 }
 
-func FilterSmartcontractKeys(socket *zmq.Socket, tf *topic.TopicFilter) map[SmartcontractKey]string {
+func FilterSmartcontractKeys(socket *zmq.Socket, tf *topic.TopicFilter) FilteredSmartcontractKeys {
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_key_filter",
@@ -181,7 +184,7 @@ func FilterSmartcontractKeys(socket *zmq.Socket, tf *topic.TopicFilter) map[Smar
 	}
 
 	rawKeys := reply.Params["smartcontract_keys"].(map[string]string)
-	var keys map[SmartcontractKey]string = make(map[SmartcontractKey]string, len(rawKeys))
+	var keys FilteredSmartcontractKeys = make(FilteredSmartcontractKeys, len(rawKeys))
 	for key, topicString := range rawKeys {
 		keys[SmartcontractKey(key)] = topicString
 	}
