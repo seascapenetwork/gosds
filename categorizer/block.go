@@ -1,7 +1,6 @@
 package categorizer
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 
@@ -42,19 +41,7 @@ func (b *Block) AbiHash() string {
 	return b.abiHash
 }
 
-func (b *Block) SetSyncing(db *sql.DB, n int, t int) error {
-	b.SetSyncingWithoutDb(n, t)
-	_, err := db.Exec(`UPDATE categorizer_blocks SET synced_block = ?, synced_timestamp = ? WHERE network_id = ? AND address = ? `,
-		b.syncedBlockNumber, b.syncedTimestamp, b.networkId, b.address)
-	if err != nil {
-		fmt.Println("Failed to save categorized block ", b.networkId, b.address)
-		return err
-	}
-
-	return nil
-}
-
-func (b *Block) SetSyncingWithoutDb(n int, t int) {
+func (b *Block) SetSyncing(n int, t int) {
 	b.syncedBlockNumber = n
 	b.syncedTimestamp = t
 }
@@ -126,37 +113,6 @@ func (b *Block) Save(socket *zmq.Socket) error {
 	}
 
 	return nil
-}
-
-func GetAll(db *sql.DB, networkId string) []Block {
-	var blocks []Block
-
-	rows, err := db.Query("SELECT network_id, address, abi_hash, synced_block, synced_timestamp FROM categorizer_blocks WHERE network_id = ?", networkId)
-	if err != nil {
-		fmt.Println("Failed to query all categorizer blocks for network id ", networkId)
-		fmt.Println(err.Error())
-		return blocks
-	}
-	defer rows.Close()
-	// An album slice to hold data from returned rows.
-
-	// Loop through rows, using Scan to assign column data to struct fields.
-	for rows.Next() {
-		var block Block
-		if err := rows.Scan(&block.networkId, &block.address, &block.abiHash, &block.syncedBlockNumber, &block.syncedTimestamp); err != nil {
-			rows.Close()
-			return blocks
-		}
-		blocks = append(blocks, block)
-	}
-	if err = rows.Err(); err != nil {
-		rows.Close()
-		return blocks
-	}
-
-	rows.Close()
-
-	return blocks
 }
 
 func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, error) {
