@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/spaghetti"
 
 	zmq "github.com/pebbe/zmq4"
 )
@@ -58,4 +59,15 @@ func RemoteParse(socket *zmq.Socket, networkId string, address string, data stri
 	}
 
 	return reply.Params["name"].(string), reply.Params["args"], nil
+}
+
+func NewLog(l spaghetti.Log, log string, output map[string]interface{}, c *Block) Log {
+	return Log{
+		NetworkId: c.NetworkID(),
+		Address:   c.Address(),
+		Txid:      l.TxId(),
+		LogIndex:  l.LogIndex(),
+		Log:       log,
+		Output:    output,
+	}
 }
