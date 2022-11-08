@@ -49,8 +49,8 @@ func (b *Block) SetSyncing(n int, t int) {
 func New(networkId string, abiHash string, address string, syncedBlockNumber int, timestamp int) Block {
 	return Block{
 		networkId:         networkId,
-		address:           abiHash,
-		abiHash:           address,
+		address:           address,
+		abiHash:           abiHash,
 		syncedBlockNumber: syncedBlockNumber,
 		syncedTimestamp:   timestamp,
 	}
