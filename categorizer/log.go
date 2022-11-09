@@ -77,7 +77,13 @@ func RemoteLogs(socket *zmq.Socket, txids []string) ([]*Log, error) {
 		return nil, err
 	}
 
-	return reply.Params["name"].(string), reply.Params["args"], nil
+	logRaws := reply.Params["logs"].([]map[string]interface{})
+	logs := make([]*Log, len(logRaws))
+	for i, raw := range logRaws {
+		logs[i] = ParseLog(raw)
+	}
+
+	return logs, nil
 }
 
 // parse the raw event data from spaghetti using SDS Log
