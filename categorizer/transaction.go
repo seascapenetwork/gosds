@@ -105,13 +105,15 @@ func RemoteTransactionAmount(socket *zmq.Socket, blockTimestampFrom int, blockTi
 	return txAmount, nil
 }
 
-func RemoteTransactions(socket *zmq.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string) ([]*Transaction, error) {
+func RemoteTransactions(socket *zmq.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string, page int, limit uint) ([]*Transaction, error) {
 	request := message.Request{
 		Command: "transaction_get_all",
 		Param: map[string]interface{}{
 			"block_timestamp_from": blockTimestampFrom,
 			"block_timestamp_to":   blockTimestampTo,
 			"smartcontract_keys":   smartcontractKeys,
+			"page":                 page,
+			"limit":                limit,
 		},
 	}
 	fmt.Println("Sending message to SDS Categorizer. The mesage sent to server")
