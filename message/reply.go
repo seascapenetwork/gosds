@@ -3,7 +3,6 @@ package message
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 )
 
 type Reply struct {
@@ -64,7 +63,7 @@ func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 	if dat["message"] != nil {
 		fmt.Println("panic data 2: ", dat)
 		jsonError, _ := json.Marshal(dat["message"])
-		replyMessage := string(jsonError)
+		replyMessage = string(jsonError)
 	}
 
 	var params map[string]interface{}
@@ -74,14 +73,3 @@ func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 
 	return Reply{Status: dat["status"].(string), Params: params, Message: replyMessage}, nil
 }
-
-
-map[
-	message:map[
-		argument:name
-		code:INVALID_ARGUMENT
-		reason:resolver or addr is not configured for ENS name value:1234
-	]
-	params:map[]
-	status:fail
-]
