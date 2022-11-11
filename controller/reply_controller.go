@@ -32,7 +32,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env) {
 		panic(err)
 	}
 
-	println("success! '" + e.ServiceName() + "' is receives commands on port " + e.Port())
+	println("'" + e.ServiceName() + "' request-reply server runs on port " + e.Port())
 
 	for {
 		msg_raw, err := socket.RecvMessage(0)
