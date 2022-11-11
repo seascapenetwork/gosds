@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 type Reply struct {
@@ -62,7 +63,8 @@ func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 	replyMessage := ""
 	if dat["message"] != nil {
 		fmt.Println("panic data 2: ", dat)
-		replyMessage := string(json.Marshal(dat["message"]))
+		jsonError, _ := json.Marshal(dat["message"])
+		replyMessage := string(jsonError)
 	}
 
 	var params map[string]interface{}
