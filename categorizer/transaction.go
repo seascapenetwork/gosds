@@ -22,6 +22,10 @@ type Transaction struct {
 	Value          float64
 }
 
+func TransactionKey(networkId string, txId string) string {
+	return networkId + "." + txId
+}
+
 func (b *Transaction) ToJSON() map[string]interface{} {
 	i := map[string]interface{}{}
 	i["network_id"] = b.NetworkId

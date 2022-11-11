@@ -46,11 +46,11 @@ func ParseLog(blob map[string]interface{}) *Log {
 	}
 }
 
-func RemoteLogs(socket *zmq.Socket, txids []string) ([]*Log, error) {
+func RemoteLogs(socket *zmq.Socket, keys []string) ([]*Log, error) {
 	request := message.Request{
 		Command: "log_get_all",
 		Param: map[string]interface{}{
-			"txids": txids,
+			"keys": keys,
 		},
 	}
 	fmt.Println("Sending message to SDS Log server to parse log. The mesage sent to server")
