@@ -3,7 +3,6 @@ package spaghetti
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type Log struct {
@@ -79,7 +78,6 @@ func ParseLogs(rawLogs []interface{}) []Log {
 		if rawLog == nil {
 			continue
 		}
-		fmt.Println("Log to parse: ", rawLog)
 		l := ParseLog(rawLog.(map[string]interface{}))
 		logs[i] = l
 	}

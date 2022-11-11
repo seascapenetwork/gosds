@@ -3,7 +3,6 @@ package spaghetti
 
 import (
 	"encoding/json"
-	"fmt"
 )
 
 type Transaction struct {
@@ -91,7 +90,6 @@ func ParseTransactions(txs []interface{}) []Transaction {
 		if tx == nil {
 			continue
 		}
-		fmt.Println("Transaction to parse: ", tx)
 		transaction := ParseTransaction(tx.(map[string]interface{}))
 		transactions = append(transactions, transaction)
 	}
