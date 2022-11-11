@@ -56,21 +56,30 @@ func ParseReply(msgs []string) (Reply, error) {
 
 func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 	if dat["status"] == nil {
-		fmt.Println("panic data 1: ", dat)
 		return Reply{}, fmt.Errorf("no 'status' parameter")
 	}
 
 	replyMessage := ""
 	if dat["message"] != nil {
 		fmt.Println("panic data 2: ", dat)
-		replyMessage = dat["message"].(string)
+		replyMessage := string(json.Marshal(dat["message"]))
 	}
 
 	var params map[string]interface{}
 	if dat["params"] != nil {
-		fmt.Println("panic data 3: ", dat)
 		params = dat["params"].(map[string]interface{})
 	}
 
 	return Reply{Status: dat["status"].(string), Params: params, Message: replyMessage}, nil
 }
+
+
+map[
+	message:map[
+		argument:name
+		code:INVALID_ARGUMENT
+		reason:resolver or addr is not configured for ENS name value:1234
+	]
+	params:map[]
+	status:fail
+]
