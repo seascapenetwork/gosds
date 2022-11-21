@@ -330,7 +330,6 @@ The argument names should be identical to the method argument names as defined i
     "message": "",
     "parameters": {
         "tx_id": "",
-        "topic_string": "",
         "arguments": {}
     }
 }
@@ -439,7 +438,7 @@ The argument names should be identical to the method argument names as defined i
 
 ```js
 {
-    "command": "smartcontract_write",
+    "command": "pool_add",
     "parameters": {
         "writer": "",
         "topic_string": "o:seascape-network;p:core;n:1;g:nft;s:ScapeNFT;m:transfer",
