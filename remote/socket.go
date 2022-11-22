@@ -18,6 +18,11 @@ type Socket struct {
 	socket            *zmq.Socket
 }
 
+// Close the remote connection
+func (socket *Socket) Close() {
+	socket.socket.Close()
+}
+
 // Send a command to the remote SDS service.
 // Note that it converts the failure reply into an error. Rather than replying reply itself back to user.
 // In case of successful request, the function returns reply parameters.
