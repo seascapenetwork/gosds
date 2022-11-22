@@ -105,10 +105,10 @@ func RemoteTransactions(socket *remote.Socket, blockTimestampFrom int, blockTime
 		return nil, err
 	}
 
-	raws := params["transactions"].([]map[string]interface{})
+	raws := params["transactions"].([]interface{})
 	transactions := make([]*Transaction, len(raws))
 	for i, raw := range raws {
-		transactions[i] = ParseTransactionFromJson(raw)
+		transactions[i] = ParseTransactionFromJson(raw.(map[string]interface{}))
 	}
 
 	return transactions, nil
