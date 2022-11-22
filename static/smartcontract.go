@@ -106,7 +106,7 @@ func (smartcontract *Smartcontract) ToString() string {
 
 // Returns list of smartcontracts by topic filter in remote Static service
 // also the topic path of the smartcontract
-func RemoteFilteredSmartcontracts(socket *remote.Socket, tf *topic.TopicFilter) ([]*Smartcontract, []string, error) {
+func RemoteSmartcontracts(socket *remote.Socket, tf *topic.TopicFilter) ([]*Smartcontract, []string, error) {
 	request := message.Request{
 		Command: "smartcontract_filter",
 		Param: map[string]interface{}{
@@ -131,7 +131,7 @@ func RemoteFilteredSmartcontracts(socket *remote.Socket, tf *topic.TopicFilter) 
 }
 
 // returns list of smartcontract keys by topic filter
-func RemoteFilteredSmartcontractKeys(socket *remote.Socket, tf *topic.TopicFilter) (FilteredSmartcontractKeys, error) {
+func RemoteSmartcontractKeys(socket *remote.Socket, tf *topic.TopicFilter) (FilteredSmartcontractKeys, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_key_filter",
