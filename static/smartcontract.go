@@ -183,10 +183,10 @@ func FilterSmartcontractKeys(socket *zmq.Socket, tf *topic.TopicFilter) Filtered
 		return nil
 	}
 
-	rawKeys := reply.Params["smartcontract_keys"].(map[string]string)
+	rawKeys := reply.Params["smartcontract_keys"].(map[string]interface{})
 	var keys FilteredSmartcontractKeys = make(FilteredSmartcontractKeys, len(rawKeys))
 	for key, topicString := range rawKeys {
-		keys[SmartcontractKey(key)] = topicString
+		keys[SmartcontractKey(key)] = topicString.(string)
 	}
 
 	return keys
