@@ -87,7 +87,7 @@ func Build(abiHash string, body interface{}) (*Abi, error) {
 	abiReader := abiObj.StringReader()
 	i, err := abi.JSON(abiReader)
 	if err != nil {
-		return abiObj, fmt.Errorf("failed to parse body. probably an invalid json body. the geth package error: %w", err)
+		return &abiObj, fmt.Errorf("failed to parse body. probably an invalid json body. the geth package error: %w", err)
 	}
 	abiObj.i = i
 
