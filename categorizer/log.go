@@ -77,10 +77,10 @@ func RemoteLogs(socket *zmq.Socket, keys []string) ([]*Log, error) {
 		return nil, err
 	}
 
-	logRaws := reply.Params["logs"].([]map[string]interface{})
+	logRaws := reply.Params["logs"].([]interface{})
 	logs := make([]*Log, len(logRaws))
 	for i, raw := range logRaws {
-		logs[i] = ParseLog(raw)
+		logs[i] = ParseLog(raw.(map[string]interface{}))
 	}
 
 	return logs, nil
