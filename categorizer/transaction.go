@@ -1,11 +1,9 @@
 package categorizer
 
 import (
-	"fmt"
-
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/spaghetti"
-	zmq "github.com/pebbe/zmq4"
 )
 
 type Transaction struct {
@@ -71,7 +69,7 @@ func ParseTransaction(tx spaghetti.Transaction, method string, inputs map[string
 	}
 }
 
-func RemoteTransactionAmount(socket *zmq.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string) (int, error) {
+func RemoteTransactionAmount(socket *remote.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string) (int, error) {
 	request := message.Request{
 		Command: "transaction_amount",
 		Param: map[string]interface{}{
@@ -80,36 +78,17 @@ func RemoteTransactionAmount(socket *zmq.Socket, blockTimestampFrom int, blockTi
 			"smartcontract_keys":   smartcontractKeys,
 		},
 	}
-	fmt.Println("Sending message to SDS Categorizer. The mesage sent to server")
-	fmt.Println(request.ToString())
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for smartcontracts getting from SDS Log", err.Error())
-		return 0, err
-	}
-
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller", err.Error())
 		return 0, err
 	}
 
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		fmt.Println("Failed to parse smartcontracts reply", err.Error())
-		return 0, err
-	}
-	if !reply.IsOK() {
-		fmt.Println("The static server returned failure: ", reply.Message)
-		return 0, err
-	}
-
-	txAmount := int(reply.Params["transaction_amount"].(float64))
+	txAmount := int(params["transaction_amount"].(float64))
 
 	return txAmount, nil
 }
 
-func RemoteTransactions(socket *zmq.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string, page int, limit uint) ([]*Transaction, error) {
+func RemoteTransactions(socket *remote.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string, page int, limit uint) ([]*Transaction, error) {
 	request := message.Request{
 		Command: "transaction_get_all",
 		Param: map[string]interface{}{
@@ -120,31 +99,13 @@ func RemoteTransactions(socket *zmq.Socket, blockTimestampFrom int, blockTimesta
 			"limit":                limit,
 		},
 	}
-	fmt.Println("Sending message to SDS Categorizer. The mesage sent to server")
-	fmt.Println(request.ToString())
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command for smartcontracts getting from SDS Log", err.Error())
-		return nil, err
-	}
 
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller", err.Error())
 		return nil, err
 	}
 
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		fmt.Println("Failed to parse smartcontracts reply", err.Error())
-		return nil, err
-	}
-	if !reply.IsOK() {
-		fmt.Println("The static server returned failure: ", reply.Message)
-		return nil, err
-	}
-
-	raws := reply.Params["transactions"].([]map[string]interface{})
+	raws := params["transactions"].([]map[string]interface{})
 	transactions := make([]*Transaction, len(raws))
 	for i, raw := range raws {
 		transactions[i] = ParseTransactionFromJson(raw)

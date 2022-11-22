@@ -1,4 +1,5 @@
-/* The ABI file handler */
+// the categorizer package keeps data types used by SDS Categorizer.
+// the data type functions as well as method to obtain data from SDS Categorizer.
 package categorizer
 
 import (
@@ -8,12 +9,19 @@ import (
 	"strings"
 
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/static"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	zmq "github.com/pebbe/zmq4"
 )
 
+////////////////////////////////////////////////////////////////////////////
+//
+// Abi struct is used for EVM based categorizer.
+// it has the smartcontract interface to parse the raw spaghetti data into categorized data.
+// its the wrapper over the SDS Static abi.
+//
+////////////////////////////////////////////////////////////////////////////
 type Abi struct {
 	staticAbi *static.Abi
 	i         abi.ABI // interface
@@ -30,9 +38,11 @@ func (a *Abi) GetMethod(method string) (*abi.Method, error) {
 		}
 	}
 
-	return nil, errors.New("no method found")
+	return nil, errors.New("method not found")
 }
 
+// given a transaction data, return a categorized variant
+// first is returned a method name, second it returns method arguments.
 func (a *Abi) ParseTxInput(data string) (string, map[string]interface{}, error) {
 	inputs := map[string]interface{}{}
 
@@ -41,86 +51,63 @@ func (a *Abi) ParseTxInput(data string) (string, map[string]interface{}, error) 
 		offset += 2
 	}
 
-	fmt.Println("Parse tx input: ", data)
-
 	// decode txInput method signature
 	decodedSig, err := hex.DecodeString(data[offset : 8+offset])
 	if err != nil {
-		return "", inputs, err
+		return "", inputs, fmt.Errorf("failed to extract method signature from transaction data. the hex package error: %w", err)
 	}
-	fmt.Println("Function sig: ", decodedSig)
-	fmt.Println(a.i.Methods)
 
 	// recover Method from signature and ABI
 	method, err := a.i.MethodById(decodedSig)
 	if err != nil {
-		return "", inputs, err
+		return "", inputs, fmt.Errorf("failed to find a method by its signature. geth package error: %w", err)
 	}
 
 	// decode txInput Payload
 	decodedData, err := hex.DecodeString(data[8+offset:])
 	if err != nil {
-		return method.Name, inputs, err
+		return method.Name, inputs, fmt.Errorf("failed to extract method input arguments from transaction data. the hex package error: %w", err)
 	}
 
 	err = method.Inputs.UnpackIntoMap(inputs, decodedData)
 	if err != nil {
-		fmt.Println("Failed to unpack tx data")
-		return method.Name, inputs, err
+		return method.Name, inputs, fmt.Errorf("failed to parse method input parameters into map. the geth package error: %w", err)
 	}
 
 	return method.Name, inputs, nil
 }
 
-func Build(abiHash string, body interface{}) Abi {
+// given abi hash and a json body, this method returns a new abi
+func Build(abiHash string, body interface{}) (*Abi, error) {
 	staticAbi := static.BuildAbi(body)
 	staticAbi.AbiHash = abiHash
 
 	abiObj := Abi{staticAbi: staticAbi}
 
 	abiReader := abiObj.StringReader()
-	i, abiErr := abi.JSON(abiReader)
-	if abiErr != nil {
-		fmt.Println("Failed to parse ABI", abiErr)
+	i, err := abi.JSON(abiReader)
+	if err != nil {
+		return abiObj, fmt.Errorf("failed to parse body. probably an invalid json body. the geth package error: %w", err)
 	}
 	abiObj.i = i
 
-	println("The abi built and return it back")
-	return abiObj
+	return &abiObj, nil
 }
 
-func AbiGet(socket zmq.Socket, abiHash string) (Abi, error) {
+// returns an abi
+func RemoteAbi(socket *remote.Socket, abiHash string) (*Abi, error) {
 	// Send hello.
-	abiGetRequest := message.Request{
+	request := message.Request{
 		Command: "abi_get",
 		Param: map[string]interface{}{
 			"abi_hash": abiHash,
 		},
 	}
-	fmt.Println("Sending message to STATIC server to get abi. The mesage sent to server")
-	fmt.Println(abiGetRequest.ToString())
-	if _, err := socket.SendMessage(abiGetRequest.ToString()); err != nil {
-		fmt.Println("Failed to send a command for abi getting from static controller", err.Error())
-		return Abi{}, fmt.Errorf("sending: %w", err)
-	}
 
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller")
-		return Abi{}, fmt.Errorf("receiving: %w", err)
+		return nil, err
 	}
 
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		fmt.Println("Failed to parse abi reply")
-		return Abi{}, fmt.Errorf("spaghetti block invalid Reply: %w", err)
-	}
-	if !reply.IsOK() {
-		fmt.Println("The static server returned failure")
-		return Abi{}, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
-	}
-
-	fmt.Println("Abi build and returned")
-	return Build(abiHash, reply.Params["abi"]), nil
+	return Build(abiHash, params["abi"])
 }

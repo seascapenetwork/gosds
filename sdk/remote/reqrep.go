@@ -2,9 +2,6 @@
 package remote
 
 import (
-	"fmt"
-
-	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
 
 	zmq "github.com/pebbe/zmq4"
@@ -44,17 +41,4 @@ func ReqReply(host string, req message.Request) message.Reply {
 	socket.Close()
 
 	return reply
-}
-
-func ReqSocket(e *env.Env) *zmq.Socket {
-	if !e.UrlExist() {
-		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port"))
-	}
-
-	sock, _ := zmq.NewSocket(zmq.REQ)
-	if err := sock.Connect("tcp://" + e.Url()); err != nil {
-		panic(fmt.Errorf("error '"+e.ServiceName()+"' connect: %w", err))
-	}
-
-	return sock
 }

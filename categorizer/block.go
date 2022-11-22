@@ -2,11 +2,9 @@ package categorizer
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/blocklords/gosds/message"
-
-	zmq "github.com/pebbe/zmq4"
+	"github.com/blocklords/gosds/remote"
 )
 
 type Block struct {
@@ -87,35 +85,22 @@ func (b *Block) ToString() string {
 	return string(byt)
 }
 
-func (b *Block) Save(socket *zmq.Socket) error {
+func (b *Block) RemoteSet(socket *remote.Socket) error {
 	// Send hello.
 	request := message.Request{
 		Command: "categorizer_block_set",
 		Param:   b.ToJSON(),
 	}
 
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		return fmt.Errorf("sending: %w", err)
-	}
-
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	_, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		return fmt.Errorf("receiving: %w", err)
-	}
-
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		return fmt.Errorf("sds categorizer reply for setting new block: %w", err)
-	}
-	if !reply.IsOK() {
-		return fmt.Errorf("sds categorizer reply for setting new block not ok: %s", reply.Message)
+		return err
 	}
 
 	return nil
 }
 
-func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, error) {
+func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Block, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "get",
@@ -124,60 +109,30 @@ func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, er
 			"address":    address,
 		},
 	}
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		return nil, fmt.Errorf("sending: %w", err)
-	}
-
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		return nil, fmt.Errorf("receiving from SDS Categorizer for 'get' command: %w", err)
+		return nil, err
 	}
 
-	fmt.Println(r)
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		return nil, fmt.Errorf("categorizer block invalid Reply: %w", err)
-	}
-	if !reply.IsOK() {
-		return nil, fmt.Errorf("categorizer block reply status is not ok: %s", reply.Message)
-	}
-
-	b := ParseJSON(reply.Params["block"].(map[string]interface{}))
+	b := ParseJSON(params["block"].(map[string]interface{}))
 	return b, nil
 }
 
-func RemoteGetAll(socket *zmq.Socket) ([]*Block, error) {
+func RemoteBlocks(socket *remote.Socket) ([]*Block, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "get_all",
 		Param:   map[string]interface{}{},
 	}
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to get all the blocks from SDS-Categorizer", err.Error())
-		return nil, fmt.Errorf("sending: %w", err)
-	}
 
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller")
-		return nil, fmt.Errorf("receiving: %w", err)
+		return nil, err
 	}
 
-	fmt.Println(r)
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		fmt.Println("Failed to parse abi reply")
-		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
-	}
-	if !reply.IsOK() {
-		fmt.Println("The static server returned failure")
-		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
-	}
-
-	returnedBlocks := reply.Params["blocks"].([]interface{})
+	returnedBlocks := params["blocks"].([]interface{})
 	blocks := make([]*Block, len(returnedBlocks))
+
 	for i, returnedBlock := range returnedBlocks {
 		b := ParseJSON(returnedBlock.(map[string]interface{}))
 
