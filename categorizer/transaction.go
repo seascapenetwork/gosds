@@ -46,7 +46,7 @@ func ParseTransactionFromJson(blob map[string]interface{}) *Transaction {
 		BlockNumber:    int(blob["block_number"].(float64)),
 		BlockTimestamp: int(blob["block_timestamp"].(float64)),
 		Txid:           blob["txid"].(string),
-		TxIndex:        blob["tx_index"].(uint),
+		TxIndex:        uint(blob["tx_index"].(float64)),
 		TxFrom:         blob["tx_from"].(string),
 		Method:         blob["method"].(string),
 		Args:           blob["arguments"].(map[string]interface{}),
