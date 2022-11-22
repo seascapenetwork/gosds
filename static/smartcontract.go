@@ -139,12 +139,12 @@ func FilterSmartcontracts(socket *zmq.Socket, tf *topic.TopicFilter) ([]*Smartco
 		return []*Smartcontract{}, nil
 	}
 
-	rawSmartcontracts := reply.Params["smartcontracts"].([]map[string]interface{})
+	rawSmartcontracts := reply.Params["smartcontracts"].([]interface{})
 	rawTopics := reply.Params["smartcontracts"].([]interface{})
 	var smartcontracts []*Smartcontract = make([]*Smartcontract, len(rawSmartcontracts))
 	var topicStrings []string = make([]string, len(rawSmartcontracts))
 	for i, rawSmartcontract := range rawSmartcontracts {
-		smartcontracts[i] = NewSmartcontract(rawSmartcontract)
+		smartcontracts[i] = NewSmartcontract(rawSmartcontract.(map[string]interface{}))
 		topicStrings[i] = rawTopics[i].(string)
 	}
 
