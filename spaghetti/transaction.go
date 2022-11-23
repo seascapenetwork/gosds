@@ -6,14 +6,15 @@ import (
 )
 
 type Transaction struct {
-	networkId   string
-	blockNumber int
-	txid        string // txId column
-	txFrom      string
-	txTo        string
-	txIndex     uint
-	data        string  // text data type
-	value       float64 // value attached with transaction
+	networkId      string
+	blockNumber    int
+	blockTimestamp int
+	txid           string // txId column
+	txFrom         string
+	txTo           string
+	txIndex        uint
+	data           string  // text data type
+	value          float64 // value attached with transaction
 }
 
 func (b *Transaction) NetworkID() string {
@@ -48,16 +49,21 @@ func (b *Transaction) Value() float64 {
 	return b.value
 }
 
+func (b *Transaction) Timestamp() int {
+	return b.blockTimestamp
+}
+
 func (b *Transaction) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"network_id":   b.networkId,
-		"block_number": b.blockNumber,
-		"txid":         b.txid,
-		"tx_from":      b.txFrom,
-		"tx_to":        b.txTo,
-		"tx_index":     b.txIndex,
-		"tx_data":      b.data,
-		"tx_value":     b.value,
+		"network_id":      b.networkId,
+		"block_number":    b.blockNumber,
+		"block_timestamp": b.blockTimestamp,
+		"txid":            b.txid,
+		"tx_from":         b.txFrom,
+		"tx_to":           b.txTo,
+		"tx_index":        b.txIndex,
+		"tx_data":         b.data,
+		"tx_value":        b.value,
 	}
 }
 
@@ -73,14 +79,15 @@ func (b *Transaction) ToString() string {
 
 func ParseTransaction(tx map[string]interface{}) Transaction {
 	return Transaction{
-		networkId:   tx["network_id"].(string),
-		blockNumber: int(tx["block_number"].(float64)),
-		txid:        tx["txid"].(string),
-		txIndex:     uint(tx["tx_index"].(float64)),
-		txFrom:      tx["tx_from"].(string),
-		txTo:        tx["tx_to"].(string),
-		data:        tx["tx_data"].(string),
-		value:       tx["tx_value"].(float64),
+		networkId:      tx["network_id"].(string),
+		blockNumber:    int(tx["block_number"].(float64)),
+		blockTimestamp: int(tx["block_timestamp"].(float64)),
+		txid:           tx["txid"].(string),
+		txIndex:        uint(tx["tx_index"].(float64)),
+		txFrom:         tx["tx_from"].(string),
+		txTo:           tx["tx_to"].(string),
+		data:           tx["tx_data"].(string),
+		value:          tx["tx_value"].(float64),
 	}
 }
 
