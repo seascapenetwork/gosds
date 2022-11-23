@@ -36,7 +36,7 @@ func ParseLog(blob map[string]interface{}) *Log {
 	return &Log{
 		NetworkId: blob["network_id"].(string),
 		Txid:      blob["txid"].(string),
-		LogIndex:  blob["log_index"].(uint),
+		LogIndex:  uint(blob["log_index"].(float64)),
 		Address:   blob["address"].(string),
 		Log:       blob["log"].(string),
 		Output:    blob["output"].(map[string]interface{}),
