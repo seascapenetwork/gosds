@@ -105,8 +105,8 @@ func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Bloc
 	request := message.Request{
 		Command: "get",
 		Param: map[string]interface{}{
-			"network_id": networkId,
-			"address":    address,
+			"networkId": networkId,
+			"address":   address,
 		},
 	}
 	params, err := socket.RequestRemoteService(&request)
