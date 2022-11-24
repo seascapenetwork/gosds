@@ -49,7 +49,7 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 	for {
 		//  We send a request, then we work to get a reply
 		if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
-			return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.RemoteServiceName, err)
+			return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
 		}
 
 		//  Poll socket for a reply, with timeout
@@ -102,9 +102,8 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 				return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
 			}
 		}
-
-		return replyParams, replyErr
 	}
+	return replyParams, replyErr
 }
 
 func TcpRequestSocketOrPanic(e *env.Env) *Socket {
