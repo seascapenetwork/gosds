@@ -42,20 +42,17 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 	poller := zmq.NewPoller()
 	poller.Add(socket.socket, zmq.POLLIN)
 
-	var replyParams map[string]interface{}
-	var replyErr error
+	//  We send a request, then we work to get a reply
+	if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
+		return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
+	}
 
 	// we attempt requests for an infinite amount of time.
 	for {
-		//  We send a request, then we work to get a reply
-		if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
-			return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
-		}
-
 		//  Poll socket for a reply, with timeout
 		sockets, err := poller.Poll(REQUEST_TIMEOUT)
 		if err != nil {
-			break //  Interrupted
+			return nil, fmt.Errorf("failed to to send the command '%s' to '%s'. poll error: %w", request.Command, socket.remoteService.ServiceName(), err)
 		}
 
 		//  Here we process a server reply and exit our loop if the
@@ -76,12 +73,10 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 			}
 
 			if !reply.IsOK() {
-				replyParams = nil
-				replyErr = fmt.Errorf("the command '%s' replied with a failure by '%s'. the reply error message: %s", request.Command, socket.remoteService.ServiceName(), reply.Message)
-			} else {
-				replyParams = reply.Params
-				replyErr = nil
+				return nil, fmt.Errorf("the command '%s' replied with a failure by '%s'. the reply error message: %s", request.Command, socket.remoteService.ServiceName(), reply.Message)
 			}
+
+			return reply.Params, nil
 		} else {
 			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", time.Duration(REQUEST_TIMEOUT.Seconds()), ", retrying...")
 			//  Old socket is confused; close it and open a new one
@@ -103,7 +98,6 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 			}
 		}
 	}
-	return replyParams, replyErr
 }
 
 func TcpRequestSocketOrPanic(e *env.Env) *Socket {
