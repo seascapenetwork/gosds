@@ -3,9 +3,19 @@ package network
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
 
-func GetSupportedNetworks() map[string]string {
+// any blockchain
+const ALL int8 = 0
+
+// filter only blockchain networks with Virtual Machine.
+// "imx" will not be here.
+const WITH_VM int8 = 1
+
+const WITHOUT_VM int8 = -1
+
+func GetSupportedNetworks(flag int8) map[string]string {
 	env := os.Getenv("SUPPORTED_NETWORKS")
 	if len(env) == 0 {
 		panic("the environment variable 'SUPPORTED_NETWORKS' is not provided")
@@ -18,11 +28,28 @@ func GetSupportedNetworks() map[string]string {
 		panic("the environment variable 'SUPPORTED_NETWORKS' is not a valid JSON")
 	}
 
+	if flag == ALL {
+		return supportedNetworks
+	}
+
+	// without VM
+	imx := "imx"
+
+	for networkId := range supportedNetworks {
+		if strings.ToLower(networkId) == imx {
+			if flag == WITH_VM {
+				delete(supportedNetworks, networkId)
+			}
+		} else if flag == WITHOUT_VM {
+			delete(supportedNetworks, networkId)
+		}
+	}
+
 	return supportedNetworks
 }
 
-func GetNetworkIds() []string {
-	supportedNetworks := GetSupportedNetworks()
+func GetNetworkIds(flag int8) []string {
+	supportedNetworks := GetSupportedNetworks(flag)
 
 	ids := make([]string, 0)
 
@@ -36,25 +63,21 @@ func GetNetworkIds() []string {
 	return ids
 }
 
-func IsSupportedNetwork(networkId string) bool {
-	supportedNetworks := GetSupportedNetworks()
+func IsSupportedNetwork(networkId string, flag int8) bool {
+	supportedNetworks := GetSupportedNetworks(flag)
 	if len(supportedNetworks) == 0 {
 		return false
 	}
 
 	_, ok := supportedNetworks[networkId]
-	if !ok {
-		return false
-	}
-
-	return true
+	return ok
 }
 
-func GetProvider(networkId string) string {
-	if !IsSupportedNetwork(networkId) {
+func GetProvider(networkId string, flag int8) string {
+	if !IsSupportedNetwork(networkId, flag) {
 		return ""
 	}
-	supportedNetworks := GetSupportedNetworks()
+	supportedNetworks := GetSupportedNetworks(flag)
 
 	return supportedNetworks[networkId]
 }

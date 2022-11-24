@@ -1,13 +1,10 @@
 package categorizer
 
 import (
-	"database/sql"
 	"encoding/json"
-	"fmt"
 
 	"github.com/blocklords/gosds/message"
-
-	zmq "github.com/pebbe/zmq4"
+	"github.com/blocklords/gosds/remote"
 )
 
 type Block struct {
@@ -15,6 +12,7 @@ type Block struct {
 	address           string
 	abiHash           string
 	syncedBlockNumber int
+	syncedTimestamp   int
 }
 
 func (b *Block) NetworkID() string {
@@ -29,6 +27,10 @@ func (b *Block) BlockNumber() int {
 	return b.syncedBlockNumber
 }
 
+func (b *Block) Timestamp() int {
+	return b.syncedTimestamp
+}
+
 func (b *Block) Address() string {
 	return b.address
 }
@@ -37,26 +39,18 @@ func (b *Block) AbiHash() string {
 	return b.abiHash
 }
 
-func (b *Block) SetBlockNumber(stmt *sql.Stmt, n int) bool {
+func (b *Block) SetSyncing(n int, t int) {
 	b.syncedBlockNumber = n
-
-	if _, err := stmt.Exec(n, b.networkId, b.address); err != nil {
-		return false
-	}
-
-	return true
+	b.syncedTimestamp = t
 }
 
-func (b *Block) SetBlockNumberWithoutDb(n int) {
-	b.syncedBlockNumber = n
-}
-
-func New(networkId string, abiHash string, address string, syncedBlockNumber int) Block {
+func New(networkId string, abiHash string, address string, syncedBlockNumber int, timestamp int) Block {
 	return Block{
 		networkId:         networkId,
-		address:           abiHash,
-		abiHash:           address,
+		address:           address,
+		abiHash:           abiHash,
 		syncedBlockNumber: syncedBlockNumber,
+		syncedTimestamp:   timestamp,
 	}
 }
 
@@ -66,11 +60,18 @@ func (b *Block) ToJSON() map[string]interface{} {
 	i["address"] = b.address
 	i["abi_hash"] = b.abiHash
 	i["synced_block_number"] = b.syncedBlockNumber
+	i["timestamp"] = b.syncedTimestamp
 	return i
 }
 
 func ParseJSON(blob map[string]interface{}) *Block {
-	b := New(blob["network_id"].(string), blob["address"].(string), blob["abi_hash"].(string), int(blob["synced_block_number"].(float64)))
+	b := New(
+		blob["network_id"].(string),
+		blob["address"].(string),
+		blob["abi_hash"].(string),
+		int(blob["synced_block_number"].(float64)),
+		int(blob["timestamp"].(float64)),
+	)
 	return &b
 }
 
@@ -84,135 +85,54 @@ func (b *Block) ToString() string {
 	return string(byt)
 }
 
-func (b *Block) Save(socket *zmq.Socket) error {
+func (b *Block) RemoteSet(socket *remote.Socket) error {
 	// Send hello.
 	request := message.Request{
 		Command: "categorizer_block_set",
 		Param:   b.ToJSON(),
 	}
-	fmt.Println("Sending message to SDS-Categorizer server to save new block. The mesage sent to server")
-	fmt.Println(request.ToString())
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to send a command to save new block", err.Error())
-		return fmt.Errorf("sending: %w", err)
-	}
 
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	_, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller")
-		return fmt.Errorf("receiving: %w", err)
+		return err
 	}
 
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		fmt.Println("Failed to parse abi reply")
-		return fmt.Errorf("spaghetti block invalid Reply: %w", err)
-	}
-	if !reply.IsOK() {
-		fmt.Println("The static server returned failure")
-		return fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
-	}
-
-	fmt.Println("Abi build and returned")
 	return nil
 }
 
-func GetAll(db *sql.DB, networkId string) []Block {
-	var blocks []Block
-
-	rows, err := db.Query("SELECT network_id, address, abi_hash, synced_block FROM categorizer_blocks WHERE network_id = ?", networkId)
-	if err != nil {
-		fmt.Println("Failed to query all categorizer blocks for network id ", networkId)
-		fmt.Println(err.Error())
-		return blocks
-	}
-	defer rows.Close()
-	// An album slice to hold data from returned rows.
-
-	// Loop through rows, using Scan to assign column data to struct fields.
-	for rows.Next() {
-		var block Block
-		if err := rows.Scan(&block.networkId, &block.address, &block.abiHash, &block.syncedBlockNumber); err != nil {
-			rows.Close()
-			return blocks
-		}
-		blocks = append(blocks, block)
-	}
-	if err = rows.Err(); err != nil {
-		rows.Close()
-		return blocks
-	}
-
-	rows.Close()
-
-	return blocks
-}
-
-func RemoteGet(socket *zmq.Socket, networkId string, address string) (*Block, error) {
+func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Block, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "get",
 		Param: map[string]interface{}{
-			"networkId": networkId,
-			"address":   address,
+			"network_id": networkId,
+			"address":    address,
 		},
 	}
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		return nil, fmt.Errorf("sending: %w", err)
-	}
-
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		return nil, fmt.Errorf("receiving from SDS Categorizer for 'get' command: %w", err)
+		return nil, err
 	}
 
-	fmt.Println(r)
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		return nil, fmt.Errorf("categorizer block invalid Reply: %w", err)
-	}
-	if !reply.IsOK() {
-		return nil, fmt.Errorf("categorizer block reply status is not ok: %s", reply.Message)
-	}
-
-	returnedBlock := reply.Params["block"].(interface{})
-	b := ParseJSON(returnedBlock.(map[string]interface{}))
+	b := ParseJSON(params["block"].(map[string]interface{}))
 	return b, nil
 }
 
-func RemoteGetAll(socket *zmq.Socket) ([]*Block, error) {
+func RemoteBlocks(socket *remote.Socket) ([]*Block, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "get_all",
 		Param:   map[string]interface{}{},
 	}
-	if _, err := socket.SendMessage(request.ToString()); err != nil {
-		fmt.Println("Failed to get all the blocks from SDS-Categorizer", err.Error())
-		return nil, fmt.Errorf("sending: %w", err)
-	}
 
-	// Wait for reply.
-	r, err := socket.RecvMessage(0)
+	params, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		fmt.Println("Failed to receive reply from static controller")
-		return nil, fmt.Errorf("receiving: %w", err)
+		return nil, err
 	}
 
-	fmt.Println(r)
-	reply, err := message.ParseReply(r)
-	if err != nil {
-		fmt.Println("Failed to parse abi reply")
-		return nil, fmt.Errorf("spaghetti block invalid Reply: %w", err)
-	}
-	if !reply.IsOK() {
-		fmt.Println("The static server returned failure")
-		return nil, fmt.Errorf("spaghetti block reply status is not ok: %s", reply.Message)
-	}
-
-	returnedBlocks := reply.Params["blocks"].([]interface{})
+	returnedBlocks := params["blocks"].([]interface{})
 	blocks := make([]*Block, len(returnedBlocks))
+
 	for i, returnedBlock := range returnedBlocks {
 		b := ParseJSON(returnedBlock.(map[string]interface{}))
 

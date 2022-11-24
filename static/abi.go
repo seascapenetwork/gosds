@@ -41,7 +41,7 @@ func BuildAbi(body interface{}) *Abi {
 	return &abi
 }
 
-func BuildAbiByBytes(bytes []byte) *Abi {
+func BuildAbiFromBytes(bytes []byte) *Abi {
 	body := []interface{}{}
 	err := json.Unmarshal(bytes, &body)
 	if err != nil {
