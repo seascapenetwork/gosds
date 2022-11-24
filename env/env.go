@@ -36,7 +36,7 @@ func Spaghetti() *Env   { return Get("SPAGHETTI") }
 func Categorizer() *Env { return Get("CATEGORIZER") }
 func Static() *Env      { return Get("STATIC") }
 func Gateway() *Env     { return Get("GATEWAY") }
-func Broadcast() *Env   { return Get("PUBLISHER") }
+func Publisher() *Env   { return Get("PUBLISHER") }
 func Reader() *Env      { return Get("READER") }
 func Writer() *Env      { return Get("WRITER") }
 func Bundle() *Env      { return Get("BUNDLE") }
