@@ -27,7 +27,7 @@ type Socket struct {
 }
 
 const (
-	REQUEST_TIMEOUT = 2500 * time.Millisecond //  msecs, (> 1000!)
+	REQUEST_TIMEOUT = 60 * time.Second //  msecs, (> 1000!)
 )
 
 // Close the remote connection
