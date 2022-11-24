@@ -8,8 +8,8 @@ import (
 
 type Env struct {
 	service       string
-	publisherHost string
-	publisherPort string
+	broadcastHost string
+	broadcastPort string
 	port          string
 	host          string
 }
@@ -36,7 +36,7 @@ func Spaghetti() *Env   { return Get("SPAGHETTI") }
 func Categorizer() *Env { return Get("CATEGORIZER") }
 func Static() *Env      { return Get("STATIC") }
 func Gateway() *Env     { return Get("GATEWAY") }
-func Publisher() *Env   { return Get("PUBLISHER") }
+func Broadcast() *Env   { return Get("PUBLISHER") }
 func Reader() *Env      { return Get("READER") }
 func Writer() *Env      { return Get("WRITER") }
 func Bundle() *Env      { return Get("BUNDLE") }
@@ -46,10 +46,10 @@ func Log() *Env         { return Get("LOG") }
 func Get(service string) *Env {
 	host := GetString(service + "_HOST")
 	port := GetString(service + "_PORT")
-	publisherHost := GetString(service + "_PUBLISHER_HOST")
-	publisherPort := GetString(service + "_PUBLISHER_PORT")
+	broadcastHost := GetString(service + "_BROADCAST_HOST")
+	broadcastPort := GetString(service + "_BROADCAST_PORT")
 
-	return &Env{service: service, host: host, port: port, publisherHost: publisherHost, publisherPort: publisherPort}
+	return &Env{service: service, host: host, port: port, broadcastHost: broadcastHost, broadcastPort: broadcastPort}
 }
 
 func (e *Env) ServiceName() string {
@@ -59,8 +59,8 @@ func (e *Env) Url() string {
 	return e.host + ":" + e.port
 }
 
-func (e *Env) PublisherUrl() string {
-	return e.publisherHost + ":" + e.publisherPort
+func (e *Env) BroadcastUrl() string {
+	return e.broadcastHost + ":" + e.broadcastPort
 }
 
 func (e *Env) Port() string {
@@ -79,20 +79,20 @@ func (e *Env) HostEnv() string {
 	return GetString(e.service + "_HOST")
 }
 
-func (e *Env) PublisherHost() string {
-	return e.publisherHost
+func (e *Env) BroadcastHost() string {
+	return e.broadcastHost
 }
 
-func (e *Env) PublisherHostEnv() string {
-	return GetString(e.service + "_PUBLISHER_HOST")
+func (e *Env) BroadcastHostEnv() string {
+	return GetString(e.service + "_BROADCAST_HOST")
 }
 
-func (e *Env) PublisherPort() string {
-	return e.publisherPort
+func (e *Env) BroadcastPort() string {
+	return e.broadcastPort
 }
 
-func (e *Env) PublisherPortEnv() string {
-	return GetString(e.service + "_PUBLISHER_PORT")
+func (e *Env) BroadcastPortEnv() string {
+	return GetString(e.service + "_BROADCAST_PORT")
 }
 
 func (e *Env) UrlExist() bool {
@@ -103,6 +103,6 @@ func (e *Env) PortExist() bool {
 	return len(e.port) > 0
 }
 
-func (e *Env) PublisherExist() bool {
-	return len(e.publisherHost) > 0 && len(e.publisherPort) > 0
+func (e *Env) BroadcastExist() bool {
+	return len(e.broadcastHost) > 0 && len(e.broadcastPort) > 0
 }
