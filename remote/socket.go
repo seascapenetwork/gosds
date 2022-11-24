@@ -78,7 +78,7 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 
 			return reply.Params, nil
 		} else {
-			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", time.Duration(REQUEST_TIMEOUT.Seconds()), ", retrying...")
+			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", REQUEST_TIMEOUT, ", retrying...")
 			//  Old socket is confused; close it and open a new one
 			socket.socket.Close()
 
