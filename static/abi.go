@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/remote"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -50,4 +52,17 @@ func BuildAbiFromBytes(bytes []byte) *Abi {
 
 	abi := Abi{Body: body, exists: false, Bytes: bytes}
 	return &abi
+}
+
+// Sends the ABI information to the remote SDS Static.
+func RemoteAbiRegister(socket *remote.Socket, body interface{}) (map[string]interface{}, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "abi_register",
+		Param: map[string]interface{}{
+			"abi": body,
+		},
+	}
+
+	return socket.RequestRemoteService(&request)
 }
