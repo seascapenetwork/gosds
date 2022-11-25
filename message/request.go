@@ -7,12 +7,16 @@ import (
 type Request struct {
 	Command string
 	Param   map[string]interface{}
+	Nonce   uint
+	Address string // account address derived from the private key.
 }
 
 func (reply *Request) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"command": reply.Command,
 		"params":  reply.Param,
+		"nonce":   reply.Nonce,
+		"address": reply.Address,
 	}
 }
 
@@ -50,5 +54,12 @@ func ParseRequest(msgs []string) (Request, error) {
 		return Request{}, err
 	}
 
-	return Request{Command: dat["command"].(string), Param: dat["params"].(map[string]interface{})}, nil
+	request := Request{
+		Command: dat["command"].(string),
+		Param:   dat["params"].(map[string]interface{}),
+		Nonce:   uint(dat["params"].(float64)),
+		Address: dat["address"].(string),
+	}
+
+	return request, nil
 }

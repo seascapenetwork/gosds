@@ -9,13 +9,15 @@ type Reply struct {
 	Status  string
 	Message string
 	Params  map[string]interface{}
+	Nonce   uint
+	Address string
 }
 
-func Fail(err string) Reply {
-	return Reply{Status: "fail", Message: err}
+func Fail(err string, address string, nonce uint) Reply {
+	return Reply{Status: "fail", Message: err, Address: address, Nonce: nonce}
 }
 
-func (r *Reply) IsOK() bool { return r.Status == "ok" || r.Status == "OK" }
+func (r *Reply) IsOK() bool { return r.Status == "OK" }
 
 /* Convert to format understood by the protocol */
 func (reply *Reply) ToJSON() map[string]interface{} {
@@ -23,6 +25,8 @@ func (reply *Reply) ToJSON() map[string]interface{} {
 		"status":  reply.Status,
 		"message": reply.Message,
 		"params":  reply.Params,
+		"address": reply.Address,
+		"nonce":   reply.Nonce,
 	}
 }
 
@@ -64,10 +68,21 @@ func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 		replyMessage = dat["message"].(string)
 	}
 
+	address := dat["address"].(string)
+	nonce := uint(dat["nonce"].(float64))
+
 	var params map[string]interface{}
 	if dat["params"] != nil {
 		params = dat["params"].(map[string]interface{})
 	}
 
-	return Reply{Status: dat["status"].(string), Params: params, Message: replyMessage}, nil
+	reply := Reply{
+		Status:  dat["status"].(string),
+		Params:  params,
+		Message: replyMessage,
+		Address: address,
+		Nonce:   nonce,
+	}
+
+	return reply, nil
 }
