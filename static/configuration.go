@@ -55,23 +55,6 @@ func NewConfiguration(body map[string]interface{}) *Configuration {
 	return &conf
 }
 
-// get configuration from SDS Static by the configuration topic
-func RemoteConfiguration(socket *remote.Socket, t *topic.Topic) (*Configuration, *Smartcontract, error) {
-	// Send hello.
-	request := message.Request{
-		Command: "configuration_get",
-		Param:   t.ToJSON(),
-	}
-	params, err := socket.RequestRemoteService(&request)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	returnedConfig := params["configuration"].(map[string]interface{})
-	returnedSmartcontract := params["smartcontract"].(map[string]interface{})
-	return NewConfiguration(returnedConfig), NewSmartcontract(returnedSmartcontract), nil
-}
-
 func (c *Configuration) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"s":       c.Name,
@@ -91,4 +74,32 @@ func (c *Configuration) ToString() string {
 	}
 
 	return string(byt)
+}
+
+// get configuration from SDS Static by the configuration topic
+func RemoteConfiguration(socket *remote.Socket, t *topic.Topic) (*Configuration, *Smartcontract, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "configuration_get",
+		Param:   t.ToJSON(),
+	}
+	params, err := socket.RequestRemoteService(&request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	returnedConfig := params["configuration"].(map[string]interface{})
+	returnedSmartcontract := params["smartcontract"].(map[string]interface{})
+	return NewConfiguration(returnedConfig), NewSmartcontract(returnedSmartcontract), nil
+}
+
+func RemoteConfigurationRegister(socket *remote.Socket, conf *Configuration) error {
+	// Send hello.
+	request := message.Request{
+		Command: "configuration_register",
+		Param:   conf.ToJSON(),
+	}
+
+	_, err := socket.RequestRemoteService(&request)
+	return err
 }
