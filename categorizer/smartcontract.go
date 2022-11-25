@@ -85,7 +85,7 @@ func (b *Smartcontract) ToString() string {
 	return string(byt)
 }
 
-func (b *Smartcontract) RemoteSmartcontractSet(socket *remote.Socket) error {
+func (b *Smartcontract) RemoteSet(socket *remote.Socket) error {
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_set",
