@@ -171,3 +171,19 @@ func RemoteSmartcontract(socket *remote.Socket, networkId string, address string
 	returnedSmartcontract := params["smartcontract"].(map[string]interface{})
 	return NewSmartcontract(returnedSmartcontract), nil
 }
+
+func RemoteSmartcontractRegister(socket *remote.Socket, s *Smartcontract) (string, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "smartcontract_register",
+		Param:   s.ToJSON(),
+	}
+
+	params, err := socket.RequestRemoteService(&request)
+	if err != nil {
+		return "", err
+	}
+
+	address := params["address"].(string)
+	return address, nil
+}
