@@ -7,7 +7,7 @@ import (
 	"github.com/blocklords/gosds/remote"
 )
 
-type Block struct {
+type Smartcontract struct {
 	networkId         string
 	address           string
 	abiHash           string
@@ -15,37 +15,37 @@ type Block struct {
 	syncedTimestamp   int
 }
 
-func (b *Block) NetworkID() string {
+func (b *Smartcontract) NetworkID() string {
 	return b.networkId
 }
 
-func (b *Block) Key() string {
+func (b *Smartcontract) Key() string {
 	return b.networkId + "." + b.address
 }
 
-func (b *Block) BlockNumber() int {
+func (b *Smartcontract) BlockNumber() int {
 	return b.syncedBlockNumber
 }
 
-func (b *Block) Timestamp() int {
+func (b *Smartcontract) Timestamp() int {
 	return b.syncedTimestamp
 }
 
-func (b *Block) Address() string {
+func (b *Smartcontract) Address() string {
 	return b.address
 }
 
-func (b *Block) AbiHash() string {
+func (b *Smartcontract) AbiHash() string {
 	return b.abiHash
 }
 
-func (b *Block) SetSyncing(n int, t int) {
+func (b *Smartcontract) SetSyncing(n int, t int) {
 	b.syncedBlockNumber = n
 	b.syncedTimestamp = t
 }
 
-func New(networkId string, abiHash string, address string, syncedBlockNumber int, timestamp int) Block {
-	return Block{
+func New(networkId string, abiHash string, address string, syncedBlockNumber int, timestamp int) Smartcontract {
+	return Smartcontract{
 		networkId:         networkId,
 		address:           address,
 		abiHash:           abiHash,
@@ -54,28 +54,28 @@ func New(networkId string, abiHash string, address string, syncedBlockNumber int
 	}
 }
 
-func (b *Block) ToJSON() map[string]interface{} {
+func (b *Smartcontract) ToJSON() map[string]interface{} {
 	i := map[string]interface{}{}
 	i["network_id"] = b.networkId
 	i["address"] = b.address
 	i["abi_hash"] = b.abiHash
-	i["synced_block_number"] = b.syncedBlockNumber
-	i["timestamp"] = b.syncedTimestamp
+	i["categorized_block_number"] = b.syncedBlockNumber
+	i["categorized_block_timestamp"] = b.syncedTimestamp
 	return i
 }
 
-func ParseJSON(blob map[string]interface{}) *Block {
+func ParseJSON(blob map[string]interface{}) *Smartcontract {
 	b := New(
 		blob["network_id"].(string),
 		blob["address"].(string),
 		blob["abi_hash"].(string),
-		int(blob["synced_block_number"].(float64)),
-		int(blob["timestamp"].(float64)),
+		int(blob["categorized_block_number"].(float64)),
+		int(blob["categorized_block_timestamp"].(float64)),
 	)
 	return &b
 }
 
-func (b *Block) ToString() string {
+func (b *Smartcontract) ToString() string {
 	s := b.ToJSON()
 	byt, err := json.Marshal(s)
 	if err != nil {
@@ -85,10 +85,10 @@ func (b *Block) ToString() string {
 	return string(byt)
 }
 
-func (b *Block) RemoteSet(socket *remote.Socket) error {
+func (b *Smartcontract) RemoteSmartcontractSet(socket *remote.Socket) error {
 	// Send hello.
 	request := message.Request{
-		Command: "categorizer_block_set",
+		Command: "smartcontract_set",
 		Param:   b.ToJSON(),
 	}
 
@@ -100,10 +100,10 @@ func (b *Block) RemoteSet(socket *remote.Socket) error {
 	return nil
 }
 
-func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Block, error) {
+func RemoteSmartcontract(socket *remote.Socket, networkId string, address string) (*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "get",
+		Command: "smartcontract_get",
 		Param: map[string]interface{}{
 			"network_id": networkId,
 			"address":    address,
@@ -114,14 +114,14 @@ func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Bloc
 		return nil, err
 	}
 
-	b := ParseJSON(params["block"].(map[string]interface{}))
+	b := ParseJSON(params["smartcontract"].(map[string]interface{}))
 	return b, nil
 }
 
-func RemoteBlocks(socket *remote.Socket) ([]*Block, error) {
+func RemoteSmartcontracts(socket *remote.Socket) ([]*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "get_all",
+		Command: "smartcontract_get_all",
 		Param:   map[string]interface{}{},
 	}
 
@@ -130,14 +130,14 @@ func RemoteBlocks(socket *remote.Socket) ([]*Block, error) {
 		return nil, err
 	}
 
-	returnedBlocks := params["blocks"].([]interface{})
-	blocks := make([]*Block, len(returnedBlocks))
+	returnedBlocks := params["smartcontracts"].([]interface{})
+	smartcontracts := make([]*Smartcontract, len(returnedBlocks))
 
 	for i, returnedBlock := range returnedBlocks {
 		b := ParseJSON(returnedBlock.(map[string]interface{}))
 
-		blocks[i] = b
+		smartcontracts[i] = b
 	}
 
-	return blocks, nil
+	return smartcontracts, nil
 }
