@@ -14,14 +14,14 @@ type (
 	SmartcontractKey string
 	Smartcontract    struct {
 		// Body abi.ABI
-		NetworkId           string
-		Address             string
-		AbiHash             string
-		Txid                string
-		Deployer            string
-		StartingBlockNumber int
-		StartingTimestamp   int
-		exists              bool
+		NetworkId               string
+		Address                 string
+		AbiHash                 string
+		Txid                    string
+		Deployer                string
+		PreDeployBlockNumber    int
+		PreDeployBlockTimestamp int
+		exists                  bool
 	}
 	// smartcontract key => topic string
 	FilteredSmartcontractKeys map[SmartcontractKey]string
@@ -71,11 +71,11 @@ func NewSmartcontract(body map[string]interface{}) *Smartcontract {
 	} else {
 		smartcontract.Deployer = ""
 	}
-	if body["starting_block_number"] != nil {
-		smartcontract.StartingBlockNumber = int(body["starting_block_number"].(float64))
+	if body["pre_deploy_block_number"] != nil {
+		smartcontract.PreDeployBlockNumber = int(body["pre_deploy_block_number"].(float64))
 	}
-	if body["starting_timestamp"] != nil {
-		smartcontract.StartingTimestamp = int(body["starting_timestamp"].(float64))
+	if body["pre_deploy_block_timestamp"] != nil {
+		smartcontract.PreDeployBlockTimestamp = int(body["pre_deploy_block_timestamp"].(float64))
 	}
 
 	return &smartcontract
@@ -87,8 +87,8 @@ func (smartcontract *Smartcontract) ToJSON() map[string]interface{} {
 	i["address"] = smartcontract.Address
 	i["abi_hash"] = smartcontract.AbiHash
 	i["txid"] = smartcontract.Txid
-	i["starting_block_number"] = smartcontract.StartingBlockNumber
-	i["starting_timestamp"] = smartcontract.StartingTimestamp
+	i["pre_deploy_block_number"] = smartcontract.PreDeployBlockNumber
+	i["pre_deploy_block_timestamp"] = smartcontract.PreDeployBlockTimestamp
 	i["deployer"] = smartcontract.Deployer
 
 	return i
