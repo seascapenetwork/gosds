@@ -19,6 +19,7 @@ type Subscriber struct {
 	timer                *time.Timer
 	GatewaySocketContext *zmq.Socket
 	SubSocketContext     *zmq.Socket
+	StateTimestamp       int
 }
 
 func NewSubscriber(host string, sub string, address string) *Subscriber {
@@ -45,6 +46,8 @@ func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
 		return
 	}
 
+	s.StateTimestamp = int(subscribed.Params["block_timestamp"].(float64))
+
 	s.timer = time.AfterFunc(time.Second*time.Duration(10), func() {
 		ch <- message.Reply{Status: "fail", Message: "Server is not responding"}
 	})
@@ -69,6 +72,15 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 			break
 		}
 
+		stateTimestamp := int(heartbeatReply.Params["stateTimestamp"].(float64))
+		if stateTimestamp == s.StateTimestamp {
+			exception := message.Reply{
+				Status:  "NOTOK",
+				Message: "Timestamp is not same as Server, you should re-connect",
+			}
+			ch <- exception
+		}
+
 		//heartbeatReply := Heartbeat(s)
 		//if !heartbeatReply.IsOK() {
 		//	ch <- heartbeatReply
@@ -77,6 +89,16 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 
 		time.Sleep(time.Second * time.Duration(2))
 	}
+}
+
+func (s *Subscriber) Reconnect() {
+	fmt.Println("!!! Timestamp is not the same, try to re-connect...")
+
+	//s.Close()
+
+	time.Sleep(time.Second * time.Duration(5))
+
+	fmt.Println("!!! wait for current socket to close at server side...")
 }
 
 // func (s *Subscriber) loop(sub *zmq.Socket, read *zmq.Socket, ch chan message.Broadcast) {
