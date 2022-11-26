@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// SDS Service returns the reply.
 type Reply struct {
 	Status  string
 	Message string
@@ -17,9 +18,10 @@ func Fail(err string, address string, nonce uint) Reply {
 	return Reply{Status: "fail", Message: err, Address: address, Nonce: nonce}
 }
 
+// Is SDS Service returned a successful reply
 func (r *Reply) IsOK() bool { return r.Status == "OK" }
 
-/* Convert to format understood by the protocol */
+// Convert to JSON
 func (reply *Reply) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"status":  reply.Status,
@@ -30,10 +32,12 @@ func (reply *Reply) ToJSON() map[string]interface{} {
 	}
 }
 
+// Convert the reply to the string format
 func (reply *Reply) ToString() string {
 	return string(reply.ToBytes())
 }
 
+// Reply as a sequence of bytes
 func (reply *Reply) ToBytes() []byte {
 	interfaces := reply.ToJSON()
 	byt, err := json.Marshal(interfaces)
@@ -44,6 +48,7 @@ func (reply *Reply) ToBytes() []byte {
 	return byt
 }
 
+// Zeromq received raw strings converted to the reply.
 func ParseReply(msgs []string) (Reply, error) {
 	msg := ""
 	for _, v := range msgs {
@@ -58,6 +63,7 @@ func ParseReply(msgs []string) (Reply, error) {
 	return ParseJsonReply(dat)
 }
 
+// Reply object from a json object.
 func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 	if dat["status"] == nil {
 		return Reply{}, fmt.Errorf("no 'status' parameter")
