@@ -8,8 +8,6 @@ import (
 type Request struct {
 	Command string
 	Param   map[string]interface{}
-	Nonce   uint
-	Address string // account address derived from the private key.
 }
 
 // Convert to JSON
@@ -17,14 +15,12 @@ func (reply *Request) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"command": reply.Command,
 		"params":  reply.Param,
-		"nonce":   reply.Nonce,
-		"address": reply.Address,
 	}
 }
 
+// Convert request to the sequence of bytes
 func (reply *Request) ToBytes() []byte {
 	interfaces := reply.ToJSON()
-// Convert request to the sequence of bytes
 	byt, err := json.Marshal(interfaces)
 	if err != nil {
 		return []byte{}
@@ -38,8 +34,8 @@ func (reply *Request) ToString() string {
 	return string(reply.ToBytes())
 }
 
-func ToString(msgs []string) string {
 // Messages from zmq concatenated
+func ToString(msgs []string) string {
 	msg := ""
 	for _, v := range msgs {
 		msg += v
@@ -63,8 +59,6 @@ func ParseRequest(msgs []string) (Request, error) {
 	request := Request{
 		Command: dat["command"].(string),
 		Param:   dat["params"].(map[string]interface{}),
-		Nonce:   uint(dat["params"].(float64)),
-		Address: dat["address"].(string),
 	}
 
 	return request, nil
