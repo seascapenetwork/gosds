@@ -20,6 +20,7 @@ type Subscriber struct {
 	GatewaySocketContext *zmq.Socket
 	SubSocketContext     *zmq.Socket
 	StateTimestamp       int
+	connectClosed        bool
 }
 
 func NewSubscriber(host string, sub string, address string) *Subscriber {
@@ -64,6 +65,11 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 	}
 
 	for {
+		if s.connectClosed == true {
+			fmt.Println("!!! socket lost, break loop for heartbeat")
+			break
+		}
+
 		s.timer.Reset(time.Second * time.Duration(10))
 
 		heartbeatReply := remote.ReqReplyBySockContext(s.GatewaySocketContext, msg)
@@ -73,7 +79,7 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 		}
 
 		stateTimestamp := int(heartbeatReply.Params["stateTimestamp"].(float64))
-		if stateTimestamp == s.StateTimestamp {
+		if stateTimestamp != s.StateTimestamp {
 			exception := message.Reply{
 				Status:  "NOTOK",
 				Message: "Timestamp is not same as Server, you should re-connect",
@@ -91,22 +97,18 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 	}
 }
 
-func (s *Subscriber) Reconnect() {
-	fmt.Println("!!! Timestamp is not the same, try to re-connect...")
-
-	//s.Close()
-
-	time.Sleep(time.Second * time.Duration(5))
-
-	fmt.Println("!!! wait for current socket to close at server side...")
-}
-
 // func (s *Subscriber) loop(sub *zmq.Socket, read *zmq.Socket, ch chan message.Broadcast) {
 func (s *Subscriber) loop(sub *zmq.Socket, ch chan message.Broadcast) {
 	//  Process messages from both sockets
 	//  We prioritize traffic from the task ventilator
 
 	for {
+		fmt.Println(s.connectClosed)
+		if s.connectClosed == true {
+			fmt.Println("!!! socket lost, break loop for receive message loop")
+			break
+		}
+
 		msg_raw, err := sub.RecvMessage(0)
 		if err != nil {
 			fmt.Println("error in sub receive")
@@ -152,6 +154,8 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 	}
 	s.SubSocketContext = sub
 
+	s.connectClosed = false
+
 	// now create a heartbeat timer
 	ch := make(chan message.Broadcast)
 
@@ -161,10 +165,13 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 }
 
 func (s *Subscriber) Close() {
-	if s.SubSocketContext != nil {
-		s.SubSocketContext.Close()
-	}
-	if s.GatewaySocketContext != nil {
-		s.GatewaySocketContext.Close()
-	}
+	//if s.SubSocketContext != nil {
+	//	fmt.Println("@@@ close sub socket @@@")
+	//	s.SubSocketContext.Close()
+	//}
+	//if s.GatewaySocketContext != nil {
+	//	fmt.Println("@@@ close gateway socket @@@")
+	//	s.GatewaySocketContext.Close()
+	//}
+	s.connectClosed = true
 }
