@@ -6,6 +6,7 @@ import (
 )
 
 func Heartbeat(s *Subscriber) message.Reply {
+
 	msg := message.Request{
 		Command: "heartbeat",
 		Param: map[string]interface{}{

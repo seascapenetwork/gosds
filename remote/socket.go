@@ -67,6 +67,8 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 				return nil, fmt.Errorf("failed to receive the command '%s' message from '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
 			}
 
+			fmt.Println(r)
+
 			reply, err := message.ParseReply(r)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse the command '%s' reply from '%s'. gosds error %w", request.Command, socket.remoteService.ServiceName(), err)

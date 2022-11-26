@@ -42,3 +42,21 @@ func ReqReply(host string, req message.Request) message.Reply {
 
 	return reply
 }
+
+func ReqReplyBySockContext(sockContext *zmq.Socket, req message.Request) message.Reply {
+	if _, err := sockContext.SendMessage(req.ToString()); err != nil {
+		return message.Fail("socket send message error: " + err.Error())
+	}
+
+	replyMsg, err := sockContext.RecvMessage(0)
+	if err != nil {
+		return message.Fail("Failed to receive message: " + err.Error())
+	}
+
+	reply, err := message.ParseReply(replyMsg)
+	if err != nil {
+		return message.Fail("parse error of reply: " + err.Error())
+	}
+
+	return reply
+}

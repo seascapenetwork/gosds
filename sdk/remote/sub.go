@@ -24,3 +24,17 @@ func NewSub(host string, topic string) (*zmq.Socket, error) {
 
 	return socket, nil
 }
+
+func NewSocket(host string) (*zmq.Socket, error) {
+	socket, sockErr := zmq.NewSocket(zmq.REQ)
+	if sockErr != nil {
+		return nil, sockErr
+	}
+
+	conErr := socket.Connect("tcp://" + host)
+	if conErr != nil {
+		return nil, conErr
+	}
+
+	return socket, nil
+}
