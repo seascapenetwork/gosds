@@ -42,18 +42,38 @@ func (s *Subscriber) subscribe(ch chan message.Reply) error {
 	// by publisher.
 	time.Sleep(time.Millisecond * time.Duration(100))
 
-	request := message.Request{
-		Command: "subscribe",
-		Param: map[string]interface{}{
-			"topic_filter": t.ToJSON(),
-			"subscriber":   s.Address,
-		},
-	}
-
-	_, err := s.socket.RequestRemoteService(&request)
+	smartcontracts, topicStrings, err := static.RemoteSmartcontracts(s.socket, s.db.TopicFilter())
 	if err != nil {
 		ch <- message.Fail(err.Error())
-		return
+		return err
+	}
+
+	// set the smartcontract keys
+	for i, sm := range smartcontracts {
+		key := sm.KeyString()
+
+		// cache the smartcontract block timestamp
+		// block timestamp is used to subscribe for the events
+		blockTimestamp := s.db.GetBlockTimestamp(&key)
+		if blockTimestamp == 0 {
+			blockTimestamp = uint64(sm.PreDeployBlockTimestamp)
+			err := s.db.SetBlockTimestamp(&key, blockTimestamp)
+			if err != nil {
+				ch <- message.Fail(err.Error())
+				return err
+			}
+		}
+
+		// cache the topic string
+		topicString := topicStrings[i]
+		err := s.db.SetTopicString(&key, topicString)
+		if err != nil {
+			ch <- message.Fail(err.Error())
+			return err
+		}
+
+		// finally track the smartcontract
+		s.smartcontractKeys = append(s.smartcontractKeys, &key)
 	}
 
 	s.timer = time.AfterFunc(time.Second*time.Duration(10), func() {
