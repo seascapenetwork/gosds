@@ -46,13 +46,14 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 		return message.Fail("subscribe initiation error: " + err.Error()), nil, nil
 	}
 
-	// Run the listener
+	// Run the Subscriber that is connected to the Broadcaster
 	sub, err := remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
 	if err != nil {
 		return message.Fail("failed to establish a connection with SDS Gateway: " + err.Error()), nil, nil
 	}
 	// Subscribing to the events, but we will not call the sub.ReceiveMessage
 	// until we will not get the snapshot of the missing data.
+	// ZMQ will queue the data until we will not call sub.ReceiveMessage.
 	for _, key := range s.smartcontractKeys {
 		err := sub.SetSubscribe(string(*key))
 		if err != nil {
@@ -60,9 +61,11 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 		}
 	}
 
-	// now create a heartbeat timer
+	// now create a broadcaster timer
 	ch := make(chan message.Broadcast)
 
+
+	// then we can start to receive subscription messages.
 	go s.loop(sub, ch)
 
 	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, ch, hb
