@@ -40,6 +40,8 @@ func (kvm *KVM) Close() {
 	kvm.db.Close()
 }
 
+func (kvm *KVM) TopicFilter() *topic.TopicFilter { return kvm.topicFilter }
+
 func (kvm *KVM) KeyBlockTimestamp(key *static.SmartcontractKey) []byte {
 	topicString := kvm.topicFilter.ToString()
 	keyString := string(*key)
