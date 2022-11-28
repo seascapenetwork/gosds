@@ -35,6 +35,39 @@ func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string)
 	}
 }
 
+// the main function that starts the broadcasting.
+// It first calls the smartcontract_filters. and cacshes them out.
+// if there is an error, it will return them either in the Heartbeat channel
+func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.Broadcast, chan message.Reply) {
+	hb := make(chan message.Reply)
+
+	err := s.subscribe(hb)
+	if err != nil {
+		return message.Fail("subscribe initiation error: " + err.Error()), nil, nil
+	}
+
+	// Run the listener
+	sub, err := remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
+	if err != nil {
+		return message.Fail("failed to establish a connection with SDS Gateway: " + err.Error()), nil, nil
+	}
+	// Subscribing to the events, but we will not call the sub.ReceiveMessage
+	// until we will not get the snapshot of the missing data.
+	for _, key := range s.smartcontractKeys {
+		err := sub.SetSubscribe(string(*key))
+		if err != nil {
+			return message.Fail("failed to subscribe to the smartcontract: " + err.Error()), nil, nil
+		}
+	}
+
+	// now create a heartbeat timer
+	ch := make(chan message.Broadcast)
+
+	go s.loop(sub, ch)
+
+	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, ch, hb
+}
+
 // The algorithm
 // List of the smartcontracts by smartcontract filter
 func (s *Subscriber) subscribe(ch chan message.Reply) error {
@@ -126,23 +159,4 @@ func (s *Subscriber) loop(sub *zmq.Socket, ch chan message.Broadcast) {
 			break //  Exit loop
 		}
 	}
-}
-
-func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.Broadcast, chan message.Reply) {
-	hb := make(chan message.Reply)
-
-	go s.subscribe(t, hb)
-
-	// Run the listener
-	sub, err := remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
-	if err != nil {
-		return message.Fail("Failed to establish a connection with SDS Publisher: " + err.Error()), nil, nil
-	}
-
-	// now create a heartbeat timer
-	ch := make(chan message.Broadcast)
-
-	go s.loop(sub, ch)
-
-	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, ch, hb
 }
