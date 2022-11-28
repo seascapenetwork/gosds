@@ -53,7 +53,7 @@ func Writer() *Env      { return Get("WRITER") }
 func Bundle() *Env      { return Get("BUNDLE") }
 func Log() *Env         { return Get("LOG") }
 
-// env.Get("SPAGHETTI").
+// for example env.Get("SPAGHETTI").
 func Get(service string) *Env {
 	host := GetString(service + "_HOST")
 	port := GetString(service + "_PORT")
