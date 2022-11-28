@@ -35,6 +35,10 @@ func (socket *Socket) Close() {
 	socket.socket.Close()
 }
 
+func (socket *Socket) RemoteBroadcastUrl() string {
+	return socket.remoteService.BroadcastUrl()
+}
+
 // Send a command to the remote SDS service.
 // Note that it converts the failure reply into an error. Rather than replying reply itself back to user.
 // In case of successful request, the function returns reply parameters.
