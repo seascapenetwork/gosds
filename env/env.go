@@ -1,3 +1,8 @@
+/*
+The environment package's file category handles loading
+
+.env or any other environment variable that is provided by the user
+*/
 package env
 
 import (
