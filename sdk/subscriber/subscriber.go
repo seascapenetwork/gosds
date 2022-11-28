@@ -1,3 +1,4 @@
+// The sdk/subscriber package is used to register for the smartcontracts
 package subscriber
 
 import (
