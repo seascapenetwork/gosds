@@ -40,7 +40,6 @@ func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string)
 func (s *Subscriber) subscribe(ch chan message.Reply) error {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
-	time.Sleep(time.Millisecond * time.Duration(100))
 
 	smartcontracts, topicStrings, err := static.RemoteSmartcontracts(s.socket, s.db.TopicFilter())
 	if err != nil {
