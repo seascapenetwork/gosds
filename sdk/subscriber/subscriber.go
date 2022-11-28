@@ -41,7 +41,7 @@ func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string)
 func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.Broadcast, chan message.Reply) {
 	hb := make(chan message.Reply)
 
-	err := s.subscribe(hb)
+	err := s.initiate(hb)
 	if err != nil {
 		return message.Fail("subscribe initiation error: " + err.Error()), nil, nil
 	}
@@ -70,7 +70,7 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 
 // The algorithm
 // List of the smartcontracts by smartcontract filter
-func (s *Subscriber) subscribe(ch chan message.Reply) error {
+func (s *Subscriber) initiate(ch chan message.Reply) error {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
 
