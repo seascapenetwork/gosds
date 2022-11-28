@@ -19,6 +19,12 @@ type Env struct {
 	host          string
 }
 
+// Checks whether the envrionment variable exists or not
+func Exists(name string) bool {
+	_, exists := os.LookupEnv(name)
+	return exists
+}
+
 func GetString(name string) string {
 	return os.Getenv(name)
 }
