@@ -5,7 +5,8 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
-// Request Reply pattern. In the web it's called RPC.
+// Subscriber. In the web it's called RPC.
+// If the topic parameter is empty, then user has to set it up by himself.
 func NewSub(host string, topic string) (*zmq.Socket, error) {
 	socket, sockErr := zmq.NewSocket(zmq.SUB)
 	if sockErr != nil {
@@ -17,9 +18,11 @@ func NewSub(host string, topic string) (*zmq.Socket, error) {
 		return nil, conErr
 	}
 
-	err := socket.SetSubscribe(topic)
-	if err != nil {
-		return nil, err
+	if topic != "" {
+		err := socket.SetSubscribe(topic)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return socket, nil
