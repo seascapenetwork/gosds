@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blocklords/gosds/message"
+	sds_remote "github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/topic"
 
 	"github.com/blocklords/gosds/sdk/remote"
@@ -14,14 +15,13 @@ import (
 )
 
 type Subscriber struct {
-	Host    string // SDS Gateway host
-	Sub     string // SDS Publisher host
 	Address string // Account address granted for reading
 	timer   *time.Timer
+	socket  *sds_remote.Socket
 }
 
-func NewSubscriber(host string, sub string, address string) *Subscriber {
-	return &Subscriber{Host: host, Sub: sub, Address: address}
+func NewSubscriber(gatewaySocket *sds_remote.Socket, address string) *Subscriber {
+	return &Subscriber{socket: gatewaySocket, Address: address}
 }
 
 func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
@@ -29,7 +29,7 @@ func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
 	// by publisher.
 	time.Sleep(time.Millisecond * time.Duration(100))
 
-	msg := message.Request{
+	request := message.Request{
 		Command: "subscribe",
 		Param: map[string]interface{}{
 			"topic_filter": t.ToJSON(),
@@ -37,9 +37,9 @@ func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
 		},
 	}
 
-	subscribed := remote.ReqReply(s.Host, msg)
-	if !subscribed.IsOK() {
-		ch <- subscribed
+	_, err := s.socket.RequestRemoteService(&request)
+	if err != nil {
+		ch <- message.Fail(err.Error())
 		return
 	}
 
@@ -100,7 +100,7 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 	go s.subscribe(t, hb)
 
 	// Run the listener
-	sub, err := remote.NewSub(s.Sub, s.Address)
+	sub, err := remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
 	if err != nil {
 		return message.Fail("Failed to establish a connection with SDS Publisher: " + err.Error()), nil, nil
 	}
