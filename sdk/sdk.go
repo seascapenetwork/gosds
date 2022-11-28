@@ -48,10 +48,12 @@ import (
 
 	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/remote"
+	"github.com/blocklords/gosds/sdk/db"
 	"github.com/blocklords/gosds/sdk/env"
 	"github.com/blocklords/gosds/sdk/reader"
 	"github.com/blocklords/gosds/sdk/subscriber"
 	"github.com/blocklords/gosds/sdk/writer"
+	"github.com/blocklords/gosds/topic"
 )
 
 var Version string = "Seascape GoSDS version: 0.0.8"
@@ -83,7 +85,7 @@ func NewWriter(address string) (*writer.Writer, error) {
 }
 
 // Returns a new subscriber
-func NewSubscriber(address string) (*subscriber.Subscriber, error) {
+func NewSubscriber(address string, topicFilter *topic.TopicFilter) (*subscriber.Subscriber, error) {
 	e, err := gatewayEnv(true)
 	if err != nil {
 		return nil, err
@@ -91,7 +93,12 @@ func NewSubscriber(address string) (*subscriber.Subscriber, error) {
 
 	gatewaySocket := remote.TcpRequestSocketOrPanic(e)
 
-	return subscriber.NewSubscriber(gatewaySocket, address), nil
+	db, err := db.OpenKVM(topicFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	return subscriber.NewSubscriber(gatewaySocket, db, address), nil
 }
 
 // Returns the gateway environment variable

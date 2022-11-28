@@ -7,24 +7,37 @@ import (
 
 	"github.com/blocklords/gosds/message"
 	sds_remote "github.com/blocklords/gosds/remote"
+	"github.com/blocklords/gosds/static"
 	"github.com/blocklords/gosds/topic"
 
+	"github.com/blocklords/gosds/sdk/db"
 	"github.com/blocklords/gosds/sdk/remote"
 
 	zmq "github.com/pebbe/zmq4"
 )
 
 type Subscriber struct {
-	Address string // Account address granted for reading
-	timer   *time.Timer
-	socket  *sds_remote.Socket
+	Address           string // Account address granted for reading
+	timer             *time.Timer
+	socket            *sds_remote.Socket
+	db                *db.KVM                    // it also keeps the topic filter
+	smartcontractKeys []*static.SmartcontractKey // list of smartcontract keys
 }
 
-func NewSubscriber(gatewaySocket *sds_remote.Socket, address string) *Subscriber {
-	return &Subscriber{socket: gatewaySocket, Address: address}
+func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string) *Subscriber {
+	smartcontractKeys := make([]*static.SmartcontractKey, 0)
+
+	return &Subscriber{
+		Address:           address,
+		socket:            gatewaySocket,
+		db:                db,
+		smartcontractKeys: smartcontractKeys,
+	}
 }
 
-func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
+// The algorithm
+// List of the smartcontracts by smartcontract filter
+func (s *Subscriber) subscribe(ch chan message.Reply) error {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
 	time.Sleep(time.Millisecond * time.Duration(100))
@@ -48,6 +61,8 @@ func (s *Subscriber) subscribe(t *topic.TopicFilter, ch chan message.Reply) {
 	})
 
 	go s.heartbeat(ch)
+
+	return nil
 }
 
 func (s *Subscriber) heartbeat(ch chan message.Reply) {
