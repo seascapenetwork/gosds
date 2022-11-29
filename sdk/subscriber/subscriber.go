@@ -258,17 +258,15 @@ func (s *Subscriber) loop() {
 
 	go s.heartbeat()
 
-	//  Process messages from both sockets
-	//  We prioritize traffic from the task ventilator
-
 	for {
 		msg_raw, err := s.broadcastSocket.RecvMessage(0)
 		if err != nil {
-			fmt.Println("error in sub receive")
-			fmt.Println(err)
-		}
-		if len(msg_raw) == 0 {
+			s.BroadcastChan <- message.NewBroadcast("", message.Reply{Status: "fail", Message: "receive error: " + err.Error()})
 			break
+		}
+		// empty messages are skipped
+		if len(msg_raw) == 0 {
+			continue
 		}
 
 		b, err := message.ParseBroadcast(msg_raw)
@@ -281,8 +279,9 @@ func (s *Subscriber) loop() {
 		s.BroadcastChan <- b
 
 		if !b.IsOK() {
-			break //  Exit, assume that the Client will restart it.
+			//  Exit, assume that the Client will restart it.
 			// we might need to restart ourselves later.
+			break
 		}
 	}
 }
