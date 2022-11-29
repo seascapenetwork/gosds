@@ -275,13 +275,26 @@ func (s *Subscriber) loop() {
 			break
 		}
 
-		//  Send results to sink
-		s.BroadcastChan <- b
-
 		if !b.IsOK() {
+			//  Send results to sink
+			s.BroadcastChan <- b
 			//  Exit, assume that the Client will restart it.
 			// we might need to restart ourselves later.
 			break
 		}
+
+		// we skip the duplicate messages that were fetched by the Snapshot
+		networkId := b.Reply().Params["network_id"].(string)
+		address := b.Reply().Params["address"].(string)
+		blockTimestamp := uint64(b.Reply().Params["block_timestamp"].(float64))
+		key := static.CreateSmartcontractKey(networkId, address)
+		latestBlockNumber := s.db.GetBlockTimestamp(&key)
+
+		if latestBlockNumber > blockTimestamp {
+			continue
+		}
+
+		s.db.SetBlockTimestamp(&key, blockTimestamp)
+		s.BroadcastChan <- b
 	}
 }
