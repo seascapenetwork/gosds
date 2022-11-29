@@ -10,6 +10,7 @@ package remote
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/blocklords/gosds/env"
@@ -37,6 +38,14 @@ func (socket *Socket) Close() {
 
 func (socket *Socket) RemoteBroadcastUrl() string {
 	return socket.remoteService.BroadcastUrl()
+}
+
+func (socket *Socket) RemoteBroadcastPort() (uint, error) {
+	port, err := strconv.Atoi(socket.remoteService.BroadcastPort())
+	if err != nil {
+		return 0, err
+	}
+	return uint(port), nil
 }
 
 // Send a command to the remote SDS service.
@@ -118,4 +127,22 @@ func TcpRequestSocketOrPanic(e *env.Env) *Socket {
 		remoteService: e,
 		socket:        sock,
 	}
+}
+
+func TcpPullSocketOrPanic(port uint) *zmq.Socket {
+	sock, _ := zmq.NewSocket(zmq.PULL)
+	if err := sock.Bind(fmt.Sprintf("tcp://*:%d", port)); err != nil {
+		panic(fmt.Errorf("error to create a pull socket at port %d", port))
+	}
+
+	return sock
+}
+
+func TcpPushSocketOrPanic(port uint) *zmq.Socket {
+	sock, _ := zmq.NewSocket(zmq.PUSH)
+	if err := sock.Connect(fmt.Sprintf("tcp://localhost:%d", port)); err != nil {
+		panic(fmt.Errorf("error to create a push socket at port %d", port))
+	}
+
+	return sock
 }
