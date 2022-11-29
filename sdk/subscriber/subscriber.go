@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/blocklords/gosds/categorizer"
 	"github.com/blocklords/gosds/message"
 	sds_remote "github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/static"
@@ -22,6 +23,9 @@ type Subscriber struct {
 	socket            *sds_remote.Socket
 	db                *db.KVM                    // it also keeps the topic filter
 	smartcontractKeys []*static.SmartcontractKey // list of smartcontract keys
+
+	broadcastChan   chan message.Broadcast
+	broadcastSocket *zmq.Socket
 }
 
 func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string) *Subscriber {
@@ -47,7 +51,7 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 	}
 
 	// Run the Subscriber that is connected to the Broadcaster
-	sub, err := remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
+	s.broadcastSocket, err = remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
 	if err != nil {
 		return message.Fail("failed to establish a connection with SDS Gateway: " + err.Error()), nil, nil
 	}
@@ -55,20 +59,129 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 	// until we will not get the snapshot of the missing data.
 	// ZMQ will queue the data until we will not call sub.ReceiveMessage.
 	for _, key := range s.smartcontractKeys {
-		err := sub.SetSubscribe(string(*key))
+		err := s.broadcastSocket.SetSubscribe(string(*key))
 		if err != nil {
 			return message.Fail("failed to subscribe to the smartcontract: " + err.Error()), nil, nil
 		}
 	}
 
-	// now create a broadcaster timer
-	ch := make(chan message.Broadcast)
+	// now create a broadcaster channel to send back to the developer the messages
+	s.broadcastChan = make(chan message.Broadcast)
 
+	port, err := s.GetSinkPort()
+	if err != nil {
+		return message.Fail("failed to create a port for Snapshots"), nil, nil
+	}
+	go s.runSink(port, len(s.smartcontractKeys))
+	for i := range s.smartcontractKeys {
+		go s.snapshot(i, port)
+	}
 
 	// then we can start to receive subscription messages.
-	go s.loop(sub, ch)
+	go s.loop(s.broadcastSocket, s.broadcastChan)
 
 	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, ch, hb
+}
+
+func (s *Subscriber) GetSinkPort() (uint, error) {
+	port, err := s.socket.RemoteBroadcastPort()
+	if err != nil {
+		return 0, err
+	}
+
+	return port + 1, nil
+}
+
+func (s *Subscriber) snapshot(i int, port uint) {
+	key := s.smartcontractKeys[i]
+	limit := uint64(500)
+	page := uint64(1)
+	blockTimestampFrom := s.db.GetBlockTimestamp(key)
+	blockTimestampTo := uint64(0)
+
+	for {
+		request := message.Request{
+			Command: "snapshot_get",
+			Param: map[string]interface{}{
+				"smartcontract_key":    key,
+				"block_timestamp_from": blockTimestampFrom,
+				"block_timestamp_to":   blockTimestampTo,
+				"page":                 page,
+				"limit":                limit,
+			},
+		}
+
+		replyParams, err := s.socket.RequestRemoteService(&request)
+		if err != nil {
+			panic(err)
+		}
+
+		rawTransactions := replyParams["transactions"].([]map[string]interface{})
+		rawLogs := replyParams["logs"].([]map[string]interface{})
+		timestamp := uint64(replyParams["block_timestamp"].(float64))
+
+		// we fetch until all is not received
+		if len(rawTransactions) == 0 {
+			break
+		}
+
+		transactions := make([]*categorizer.Transaction, len(rawTransactions))
+		logs := make([]*categorizer.Log, len(rawLogs))
+
+		latestBlockNumber := uint64(0)
+		for i, rawTx := range rawTransactions {
+			transactions[i] = categorizer.ParseTransactionFromJson(rawTx)
+
+			if uint64(transactions[i].BlockTimestamp) > latestBlockNumber {
+				latestBlockNumber = uint64(transactions[i].BlockTimestamp)
+			}
+		}
+		for i, rawLog := range rawLogs {
+			logs[i] = categorizer.ParseLog(rawLog)
+		}
+
+		err = s.db.SetBlockTimestamp(key, latestBlockNumber)
+		if err != nil {
+			panic(err)
+		}
+
+		reply := message.Reply{Status: "OK", Message: "", Params: map[string]interface{}{
+			"transactions":    transactions,
+			"logs":            logs,
+			"block_timestamp": timestamp,
+		}}
+		s.broadcastChan <- message.NewBroadcast(string(*key), reply)
+
+		if blockTimestampTo == 0 {
+			blockTimestampTo = timestamp
+		}
+		page++
+	}
+
+	sock := sds_remote.TcpPushSocketOrPanic(port)
+	sock.SendMessage("")
+	sock.Close()
+}
+
+func (s *Subscriber) runSink(port uint, smartcontractAmount int) {
+	sock := sds_remote.TcpPullSocketOrPanic(port)
+	defer sock.Close()
+
+	for {
+		_, err := sock.RecvMessage(0)
+		if err != nil {
+			fmt.Println("failed to receive a message: ", err.Error())
+			continue
+		}
+
+		smartcontractAmount--
+
+		if smartcontractAmount == 0 {
+			break
+		}
+	}
+
+	go s.loop(s.broadcastSocket, s.broadcastChan)
 }
 
 // The algorithm
