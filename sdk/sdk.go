@@ -40,6 +40,25 @@ example of reading smartcontract data
 
 		fmt.Println("The user's address is: ", reply.Params["result"].(string))
 	   }
+
+-------------------------------------------
+
+example of using Subscribe
+
+	   func(test) {
+			topicFilter := topic.TopicFilter{}
+			subscriber := sdk.NewSubscriber("address", topicFilter)
+
+			// first it will get the snapshots
+			// then it will return the data
+			err := subscriber.Start()
+
+			if err := nil {
+				panic(err)
+			}
+
+			// catch channel data
+	   }
 */
 package sdk
 
