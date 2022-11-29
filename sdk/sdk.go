@@ -49,7 +49,6 @@ import (
 	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/sdk/db"
-	"github.com/blocklords/gosds/sdk/env"
 	"github.com/blocklords/gosds/sdk/reader"
 	"github.com/blocklords/gosds/sdk/subscriber"
 	"github.com/blocklords/gosds/sdk/writer"
