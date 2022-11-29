@@ -80,7 +80,7 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 	// then we can start to receive subscription messages.
 	go s.loop(s.broadcastSocket, s.broadcastChan)
 
-	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, ch, hb
+	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, s.broadcastChan, hb
 }
 
 func (s *Subscriber) GetSinkPort() (uint, error) {
