@@ -97,7 +97,7 @@ func NewSubscriber(address string, topicFilter *topic.TopicFilter) (*subscriber.
 		return nil, err
 	}
 
-	return subscriber.NewSubscriber(gatewaySocket, db, address), nil
+	return subscriber.NewSubscriber(gatewaySocket, db, address)
 }
 
 // Returns the gateway environment variable

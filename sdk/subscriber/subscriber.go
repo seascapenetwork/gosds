@@ -9,7 +9,6 @@ import (
 	"github.com/blocklords/gosds/message"
 	sds_remote "github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/static"
-	"github.com/blocklords/gosds/topic"
 
 	"github.com/blocklords/gosds/sdk/db"
 	"github.com/blocklords/gosds/sdk/remote"
@@ -24,36 +23,41 @@ type Subscriber struct {
 	db                *db.KVM                    // it also keeps the topic filter
 	smartcontractKeys []*static.SmartcontractKey // list of smartcontract keys
 
-	broadcastChan   chan message.Broadcast
+	BroadcastChan   chan message.Broadcast
+	HeartbeatChan   chan message.Reply
 	broadcastSocket *zmq.Socket
 }
 
-func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string) *Subscriber {
+func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string) (*Subscriber, error) {
 	smartcontractKeys := make([]*static.SmartcontractKey, 0)
 
-	return &Subscriber{
+	subscriber := Subscriber{
 		Address:           address,
 		socket:            gatewaySocket,
 		db:                db,
 		smartcontractKeys: smartcontractKeys,
 	}
+
+	err := subscriber.loadSmartcontracts()
+	if err != nil {
+		return nil, err
+	}
+
+	return &subscriber, nil
 }
 
 // the main function that starts the broadcasting.
 // It first calls the smartcontract_filters. and cacshes them out.
 // if there is an error, it will return them either in the Heartbeat channel
-func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.Broadcast, chan message.Reply) {
-	hb := make(chan message.Reply)
+func (s *Subscriber) Start() error {
+	s.HeartbeatChan = make(chan message.Reply)
 
-	err := s.initiate(hb)
-	if err != nil {
-		return message.Fail("subscribe initiation error: " + err.Error()), nil, nil
-	}
+	var err error
 
 	// Run the Subscriber that is connected to the Broadcaster
 	s.broadcastSocket, err = remote.NewSub(s.socket.RemoteBroadcastUrl(), s.Address)
 	if err != nil {
-		return message.Fail("failed to establish a connection with SDS Gateway: " + err.Error()), nil, nil
+		return fmt.Errorf("failed to establish a connection with SDS Gateway: " + err.Error())
 	}
 	// Subscribing to the events, but we will not call the sub.ReceiveMessage
 	// until we will not get the snapshot of the missing data.
@@ -61,29 +65,26 @@ func (s *Subscriber) Listen(t *topic.TopicFilter) (message.Reply, chan message.B
 	for _, key := range s.smartcontractKeys {
 		err := s.broadcastSocket.SetSubscribe(string(*key))
 		if err != nil {
-			return message.Fail("failed to subscribe to the smartcontract: " + err.Error()), nil, nil
+			return fmt.Errorf("failed to subscribe to the smartcontract: " + err.Error())
 		}
 	}
 
 	// now create a broadcaster channel to send back to the developer the messages
-	s.broadcastChan = make(chan message.Broadcast)
+	s.BroadcastChan = make(chan message.Broadcast)
 
-	port, err := s.GetSinkPort()
+	port, err := s.getSinkPort()
 	if err != nil {
-		return message.Fail("failed to create a port for Snapshots"), nil, nil
+		return fmt.Errorf("failed to create a port for Snapshots")
 	}
 	go s.runSink(port, len(s.smartcontractKeys))
 	for i := range s.smartcontractKeys {
 		go s.snapshot(i, port)
 	}
 
-	// then we can start to receive subscription messages.
-	go s.loop(s.broadcastSocket, s.broadcastChan)
-
-	return message.Reply{Status: "OK", Message: "Successfully created a listener"}, s.broadcastChan, hb
+	return nil
 }
 
-func (s *Subscriber) GetSinkPort() (uint, error) {
+func (s *Subscriber) getSinkPort() (uint, error) {
 	port, err := s.socket.RemoteBroadcastPort()
 	if err != nil {
 		return 0, err
@@ -150,7 +151,7 @@ func (s *Subscriber) snapshot(i int, port uint) {
 			"logs":            logs,
 			"block_timestamp": timestamp,
 		}}
-		s.broadcastChan <- message.NewBroadcast(string(*key), reply)
+		s.BroadcastChan <- message.NewBroadcast(string(*key), reply)
 
 		if blockTimestampTo == 0 {
 			blockTimestampTo = timestamp
@@ -181,18 +182,17 @@ func (s *Subscriber) runSink(port uint, smartcontractAmount int) {
 		}
 	}
 
-	go s.loop(s.broadcastSocket, s.broadcastChan)
+	go s.loop()
 }
 
 // The algorithm
 // List of the smartcontracts by smartcontract filter
-func (s *Subscriber) initiate(ch chan message.Reply) error {
+func (s *Subscriber) loadSmartcontracts() error {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
 
 	smartcontracts, topicStrings, err := static.RemoteSmartcontracts(s.socket, s.db.TopicFilter())
 	if err != nil {
-		ch <- message.Fail(err.Error())
 		return err
 	}
 
@@ -207,7 +207,6 @@ func (s *Subscriber) initiate(ch chan message.Reply) error {
 			blockTimestamp = uint64(sm.PreDeployBlockTimestamp)
 			err := s.db.SetBlockTimestamp(&key, blockTimestamp)
 			if err != nil {
-				ch <- message.Fail(err.Error())
 				return err
 			}
 		}
@@ -216,7 +215,6 @@ func (s *Subscriber) initiate(ch chan message.Reply) error {
 		topicString := topicStrings[i]
 		err := s.db.SetTopicString(&key, topicString)
 		if err != nil {
-			ch <- message.Fail(err.Error())
 			return err
 		}
 
@@ -224,22 +222,16 @@ func (s *Subscriber) initiate(ch chan message.Reply) error {
 		s.smartcontractKeys = append(s.smartcontractKeys, &key)
 	}
 
-	s.timer = time.AfterFunc(time.Second*time.Duration(10), func() {
-		ch <- message.Reply{Status: "fail", Message: "Server is not responding"}
-	})
-
-	go s.heartbeat(ch)
-
 	return nil
 }
 
-func (s *Subscriber) heartbeat(ch chan message.Reply) {
+func (s *Subscriber) heartbeat() {
 	for {
 		s.timer.Reset(time.Second * time.Duration(10))
 
 		heartbeatReply := Heartbeat(s)
 		if !heartbeatReply.IsOK() {
-			ch <- heartbeatReply
+			s.HeartbeatChan <- heartbeatReply
 			break
 		}
 
@@ -247,13 +239,18 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 	}
 }
 
-// func (s *Subscriber) loop(sub *zmq.Socket, read *zmq.Socket, ch chan message.Broadcast) {
-func (s *Subscriber) loop(sub *zmq.Socket, ch chan message.Broadcast) {
+func (s *Subscriber) loop() {
+	s.timer = time.AfterFunc(time.Second*time.Duration(10), func() {
+		s.HeartbeatChan <- message.Reply{Status: "fail", Message: "Server is not responding"}
+	})
+
+	go s.heartbeat()
+
 	//  Process messages from both sockets
 	//  We prioritize traffic from the task ventilator
 
 	for {
-		msg_raw, err := sub.RecvMessage(0)
+		msg_raw, err := s.broadcastSocket.RecvMessage(0)
 		if err != nil {
 			fmt.Println("error in sub receive")
 			fmt.Println(err)
@@ -264,15 +261,15 @@ func (s *Subscriber) loop(sub *zmq.Socket, ch chan message.Broadcast) {
 
 		b, err := message.ParseBroadcast(msg_raw)
 		if err != nil {
-			ch <- message.NewBroadcast(s.Address, message.Reply{Status: "fail", Message: "Error when parsing message " + err.Error()})
+			s.BroadcastChan <- message.NewBroadcast(s.Address, message.Reply{Status: "fail", Message: "Error when parsing message " + err.Error()})
 			break
 		}
 
 		//  Send results to sink
-		ch <- b
+		s.BroadcastChan <- b
 
 		if !b.IsOK() {
-			break //  Exit loop
+			break //  Exit
 		}
 	}
 }
