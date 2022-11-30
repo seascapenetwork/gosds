@@ -16,6 +16,19 @@ func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
 	return uint64(value), nil
 }
 
+func GetFloat64(parameters map[string]interface{}, name string) (float64, error) {
+	raw, exists := parameters[name]
+	if !exists {
+		return 0, errors.New("missing '" + name + "' parameter in the Request")
+	}
+	value, ok := raw.(float64)
+	if !ok {
+		return 0, errors.New("expected float number type for '" + name + "' parameter")
+	}
+
+	return value, nil
+}
+
 // Returns the paramater as a string
 func GetString(parameters map[string]interface{}, name string) (string, error) {
 	raw, exists := parameters[name]
@@ -54,4 +67,17 @@ func GetMapList(parameters map[string]interface{}, name string) ([]map[string]in
 	}
 
 	return list, nil
+}
+
+func GetMap(parameters map[string]interface{}, name string) (map[string]interface{}, error) {
+	raw, exists := parameters[name]
+	if !exists {
+		return nil, errors.New("missing '" + name + "' parameter in the Request")
+	}
+	value, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil, errors.New("expected map type for '" + name + "' parameter")
+	}
+
+	return value, nil
 }

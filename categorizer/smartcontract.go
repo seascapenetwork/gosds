@@ -8,83 +8,79 @@ import (
 )
 
 type Smartcontract struct {
-	networkId         string
-	address           string
-	abiHash           string
-	syncedBlockNumber int
-	syncedTimestamp   int
+	NetworkId                 string
+	Address                   string
+	AbiHash                   string
+	CategorizedBlockNumber    uint64
+	CategorizedBlockTimestamp uint64
 }
 
-func (b *Smartcontract) NetworkID() string {
-	return b.networkId
+func (s *Smartcontract) SmartcontractKeyString() string {
+	return s.NetworkId + "." + s.Address
 }
 
-func (b *Smartcontract) Key() string {
-	return b.networkId + "." + b.address
+// Updates the categorized block parameter of the smartcontract.
+// It means, this smartcontract 's' data was categorized till the given block numbers.
+//
+// The first is the block number, second is the block timestamp.
+func (s *Smartcontract) SetBlockParameter(b uint64, t uint64) {
+	s.CategorizedBlockNumber = b
+	s.CategorizedBlockTimestamp = t
 }
 
-func (b *Smartcontract) BlockNumber() int {
-	return b.syncedBlockNumber
-}
-
-func (b *Smartcontract) Timestamp() int {
-	return b.syncedTimestamp
-}
-
-func (b *Smartcontract) Address() string {
-	return b.address
-}
-
-func (b *Smartcontract) AbiHash() string {
-	return b.abiHash
-}
-
-func (b *Smartcontract) SetSyncing(n int, t int) {
-	b.syncedBlockNumber = n
-	b.syncedTimestamp = t
-}
-
-func New(networkId string, abiHash string, address string, syncedBlockNumber int, timestamp int) Smartcontract {
-	return Smartcontract{
-		networkId:         networkId,
-		address:           address,
-		abiHash:           abiHash,
-		syncedBlockNumber: syncedBlockNumber,
-		syncedTimestamp:   timestamp,
-	}
-}
-
-func (b *Smartcontract) ToJSON() map[string]interface{} {
+func (s *Smartcontract) ToJSON() map[string]interface{} {
 	i := map[string]interface{}{}
-	i["network_id"] = b.networkId
-	i["address"] = b.address
-	i["abi_hash"] = b.abiHash
-	i["categorized_block_number"] = b.syncedBlockNumber
-	i["categorized_block_timestamp"] = b.syncedTimestamp
+	i["network_id"] = s.NetworkId
+	i["address"] = s.Address
+	i["abi_hash"] = s.AbiHash
+	i["categorized_block_number"] = s.CategorizedBlockNumber
+	i["categorized_block_timestamp"] = s.CategorizedBlockTimestamp
 	return i
 }
 
-func ParseJSON(blob map[string]interface{}) *Smartcontract {
-	b := New(
-		blob["network_id"].(string),
-		blob["address"].(string),
-		blob["abi_hash"].(string),
-		int(blob["categorized_block_number"].(float64)),
-		int(blob["categorized_block_timestamp"].(float64)),
-	)
-	return &b
+func ParseSmartcontract(blob map[string]interface{}) (*Smartcontract, error) {
+	network_id, err := message.GetString(blob, "network_id")
+	if err != nil {
+		return nil, err
+	}
+	address, err := message.GetString(blob, "address")
+	if err != nil {
+		return nil, err
+	}
+	abi_hash, err := message.GetString(blob, "abi_hash")
+	if err != nil {
+		return nil, err
+	}
+	categorized_block_number, err := message.GetUint64(blob, "categorized_block_number")
+	if err != nil {
+		return nil, err
+	}
+	categorized_block_timestamp, err := message.GetUint64(blob, "categorized_block_timestamp")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Smartcontract{
+		NetworkId:                 network_id,
+		Address:                   address,
+		AbiHash:                   abi_hash,
+		CategorizedBlockNumber:    categorized_block_number,
+		CategorizedBlockTimestamp: categorized_block_timestamp,
+	}, nil
 }
 
-func (b *Smartcontract) ToString() string {
+// Returns a JSON representation of this smartcontract in a string format
+func (b *Smartcontract) ToString() (string, error) {
 	s := b.ToJSON()
 	byt, err := json.Marshal(s)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return string(byt)
+	return string(byt), nil
 }
 
+// Sends a command to the remote SDS Categorizer about regitration of this smartcontract.
 func (b *Smartcontract) RemoteSet(socket *remote.Socket) error {
 	// Send hello.
 	request := message.Request{
@@ -100,12 +96,13 @@ func (b *Smartcontract) RemoteSet(socket *remote.Socket) error {
 	return nil
 }
 
-func RemoteSmartcontract(socket *remote.Socket, networkId string, address string) (*Smartcontract, error) {
+// Returns a smartcontract information from the remote SDS Categorizer.
+func RemoteSmartcontract(socket *remote.Socket, network_id string, address string) (*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_get",
 		Param: map[string]interface{}{
-			"network_id": networkId,
+			"network_id": network_id,
 			"address":    address,
 		},
 	}
@@ -114,10 +111,15 @@ func RemoteSmartcontract(socket *remote.Socket, networkId string, address string
 		return nil, err
 	}
 
-	b := ParseJSON(params["smartcontract"].(map[string]interface{}))
-	return b, nil
+	smartcontract, err := message.GetMap(params, "smartcontract")
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseSmartcontract(smartcontract)
 }
 
+// Returns all smartcontracts from SDS Categorizer
 func RemoteSmartcontracts(socket *remote.Socket) ([]*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
@@ -130,13 +132,19 @@ func RemoteSmartcontracts(socket *remote.Socket) ([]*Smartcontract, error) {
 		return nil, err
 	}
 
-	returnedBlocks := params["smartcontracts"].([]interface{})
-	smartcontracts := make([]*Smartcontract, len(returnedBlocks))
+	raw_smartcontracts, err := message.GetMapList(params, "smartcontracts")
+	if err != nil {
+		return nil, err
+	}
 
-	for i, returnedBlock := range returnedBlocks {
-		b := ParseJSON(returnedBlock.(map[string]interface{}))
+	smartcontracts := make([]*Smartcontract, len(raw_smartcontracts))
+	for i, raw := range raw_smartcontracts {
+		smartcontract, err := ParseSmartcontract(raw)
+		if err != nil {
+			return nil, err
+		}
 
-		smartcontracts[i] = b
+		smartcontracts[i] = smartcontract
 	}
 
 	return smartcontracts, nil

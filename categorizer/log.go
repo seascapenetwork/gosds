@@ -7,42 +7,95 @@ import (
 	"github.com/blocklords/gosds/spaghetti"
 )
 
+// The Smartcontract Event Log
 type Log struct {
-	ID        uint64
-	NetworkId string
-	Txid      string
-	LogIndex  uint
-	Address   string
-	Log       string
-	Output    map[string]interface{}
+	ID        uint64                 // ID in the database
+	NetworkId string                 // Network ID
+	Txid      string                 // Transaction ID where it occured
+	LogIndex  uint                   // Log index in the block
+	Address   string                 // Smartcontract address
+	Log       string                 // Event log name
+	Output    map[string]interface{} // Event log parameters
 }
 
-func (b *Log) Key() string {
-	return b.NetworkId + "." + b.Address
-}
-
-func (b *Log) ToJSON() map[string]interface{} {
-	i := map[string]interface{}{}
-	i["network_id"] = b.NetworkId
-	i["txid"] = b.Txid
-	i["log_index"] = b.LogIndex
-	i["address"] = b.Address
-	i["log"] = b.Log
-	i["output"] = b.Output
-	return i
-}
-
-func ParseLog(blob map[string]interface{}) *Log {
+// Call categorizer.NewLog().AddMetadata().AddSmartcontractData()
+// DON'T call it as a single function
+func NewLog(log string, output map[string]interface{}) *Log {
 	return &Log{
-		NetworkId: blob["network_id"].(string),
-		Txid:      blob["txid"].(string),
-		LogIndex:  uint(blob["log_index"].(float64)),
-		Address:   blob["address"].(string),
-		Log:       blob["log"].(string),
-		Output:    blob["output"].(map[string]interface{}),
+		Log:    log,
+		Output: output,
 	}
 }
 
+// Add the metadata such as transaction id and log index from spaghetti data
+func (log *Log) AddMetadata(spaghetti_log *spaghetti.Log) *Log {
+	log.Txid = spaghetti_log.TxId()
+	log.LogIndex = spaghetti_log.LogIndex()
+	return log
+}
+
+// add the smartcontract to which this log belongs too using categorizer.Smartcontract
+func (log *Log) AddSmartcontractData(smartcontract *Smartcontract) *Log {
+	log.NetworkId = smartcontract.NetworkID()
+	log.Address = smartcontract.Address()
+	return log
+}
+
+// Convert to the Map[string]interface
+func (log *Log) ToJSON() map[string]interface{} {
+	return map[string]interface{}{
+		"network_id": log.NetworkId,
+		"txid":       log.Txid,
+		"log_index":  log.LogIndex,
+		"address":    log.Address,
+		"log":        log.Log,
+		"output":     log.Output,
+	}
+}
+
+// Creates a new Log from the json object
+func ParseLog(blob map[string]interface{}) (*Log, error) {
+	network_id, err := message.GetString(blob, "network_id")
+	if err != nil {
+		return nil, err
+	}
+	address, err := message.GetString(blob, "address")
+	if err != nil {
+		return nil, err
+	}
+	txid, err := message.GetString(blob, "txid")
+	if err != nil {
+		return nil, err
+	}
+	log_index, err := message.GetUint64(blob, "log_index")
+	if err != nil {
+		return nil, err
+	}
+	log_name, err := message.GetString(blob, "log")
+	if err != nil {
+		return nil, err
+	}
+
+	output, err := message.GetMap(blob, "output")
+	if err != nil {
+		return nil, err
+	}
+
+	log := Log{
+		NetworkId: network_id,
+		Txid:      txid,
+		LogIndex:  uint(log_index),
+		Address:   address,
+		Log:       log_name,
+		Output:    output,
+	}
+
+	return &log, nil
+}
+
+// Return list of logs for the transaction keys from the remote SDS Categorizer.
+// For the transaction keys see
+// github.com/blocklords/gosds/categorizer/transaction.go TransactionKey()
 func RemoteLogs(socket *remote.Socket, keys []string) ([]*Log, error) {
 	request := message.Request{
 		Command: "log_get_all",
@@ -55,23 +108,31 @@ func RemoteLogs(socket *remote.Socket, keys []string) ([]*Log, error) {
 		return nil, err
 	}
 
-	logRaws := params["logs"].([]interface{})
-	logs := make([]*Log, len(logRaws))
-	for i, raw := range logRaws {
-		logs[i] = ParseLog(raw.(map[string]interface{}))
+	raw_logs, err := message.GetMapList(params, "logs")
+	if err != nil {
+		return nil, err
+	}
+
+	logs := make([]*Log, len(raw_logs))
+	for i, raw := range raw_logs {
+		log, err := ParseLog(raw)
+		if err != nil {
+			return nil, err
+		}
+		logs[i] = log
 	}
 
 	return logs, nil
 }
 
-// parse the raw event data from spaghetti using SDS Log
+// Parse the raw event data using SDS Log.
 // parsing events using JSON abi is harder in golang, therefore we use javascript
 // implementation called SDS Log.
-func RemoteLogParse(socket *remote.Socket, networkId string, address string, data string, topics []string) (string, interface{}, error) {
+func RemoteLogParse(socket *remote.Socket, network_id string, address string, data string, topics []string) (string, map[string]interface{}, error) {
 	request := message.Request{
 		Command: "parse",
 		Param: map[string]interface{}{
-			"network_id": networkId,
+			"network_id": network_id,
 			"address":    address,
 			"data":       data,
 			"topics":     topics,
@@ -83,16 +144,14 @@ func RemoteLogParse(socket *remote.Socket, networkId string, address string, dat
 		return "", nil, err
 	}
 
-	return params["name"].(string), params["args"], nil
-}
-
-func NewLog(l spaghetti.Log, log string, output map[string]interface{}, c *Smartcontract) Log {
-	return Log{
-		NetworkId: c.NetworkID(),
-		Address:   c.Address(),
-		Txid:      l.TxId(),
-		LogIndex:  l.LogIndex(),
-		Log:       log,
-		Output:    output,
+	name, err := message.GetString(params, "name")
+	if err != nil {
+		return "", nil, err
 	}
+	args, err := message.GetMap(params, "args")
+	if err != nil {
+		return "", nil, err
+	}
+
+	return name, args, nil
 }
