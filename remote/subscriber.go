@@ -9,6 +9,7 @@ import (
 	zmq "github.com/pebbe/zmq4"
 )
 
+// The Socket if its a Subscriber applies a filter to listen certain data from the Broadcaster.
 func (socket *Socket) SetSubscribeFilter(topic string) error {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
@@ -21,6 +22,10 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 	return socket.socket.SetSubscribe(topic)
 }
 
+// Subscribe to the SDS Broadcast.
+// The function is intended to be called as a gouritine.
+//
+// When a new message arrives, the method will send to the channel.
 func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
