@@ -2,18 +2,20 @@ package message
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 )
 
-// SDS Service returns the reply.
+// SDS Service returns the reply. Anyone who sends a request to the SDS Service gets this message.
 type Reply struct {
 	Status  string
 	Message string
 	Params  map[string]interface{}
 }
 
-func Fail(err string) Reply {
-	return Reply{Status: "fail", Message: err}
+// Create a new Reply as a failure
+// It accepts the error message that explains the reason of the failure.
+func Fail(message string) Reply {
+	return Reply{Status: "fail", Message: message, Params: map[string]interface{}{}}
 }
 
 // Is SDS Service returned a successful reply
@@ -44,7 +46,7 @@ func (reply *Reply) ToBytes() []byte {
 	return byt
 }
 
-// Zeromq received raw strings converted to the reply.
+// Zeromq received raw strings converted to the Reply message.
 func ParseReply(msgs []string) (Reply, error) {
 	msg := ""
 	for _, v := range msgs {
@@ -59,26 +61,31 @@ func ParseReply(msgs []string) (Reply, error) {
 	return ParseJsonReply(dat)
 }
 
-// Reply object from a json object.
+// Create 'Reply' message from a json.
 func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
-	if dat["status"] == nil {
-		return Reply{}, fmt.Errorf("no 'status' parameter")
+	reply := Reply{}
+	status, err := GetString(dat, "status")
+	if err != nil {
+		return reply, err
+	}
+	if status != "fail" && status != "OK" {
+		return reply, errors.New("the 'status' of the reply can be either 'fail' or 'OK'.")
+	} else {
+		reply.Status = status
 	}
 
-	replyMessage := ""
-	if dat["message"] != nil {
-		replyMessage = dat["message"].(string)
+	message, err := GetString(dat, "message")
+	if err != nil {
+		return reply, err
+	} else {
+		reply.Message = message
 	}
 
-	var params map[string]interface{}
-	if dat["params"] != nil {
-		params = dat["params"].(map[string]interface{})
-	}
-
-	reply := Reply{
-		Status:  dat["status"].(string),
-		Params:  params,
-		Message: replyMessage,
+	parameters, err := GetMap(dat, "params")
+	if err != nil {
+		return reply, err
+	} else {
+		reply.Params = parameters
 	}
 
 	return reply, nil

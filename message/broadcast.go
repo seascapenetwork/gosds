@@ -1,18 +1,24 @@
+// The message package contains the message data types used between SDS Services.
+//
+// The message types are:
+//   - Broadcast
+//   - Request
+//   - Reply
 package message
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"strings"
 )
 
-// The PUB broadcasters broadcasting messages.
+// The broadcasters sends to all subscribers this message.
 type Broadcast struct {
 	Topic string
 	reply Reply
 }
 
-// Convert to format understood by the protocol
+// Convert to the format understood by the protocol
 func (b *Broadcast) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"topic": b.Topic,
@@ -20,12 +26,12 @@ func (b *Broadcast) ToJSON() map[string]interface{} {
 	}
 }
 
-// broadcast as a string
+// Broadcast as a string
 func (b *Broadcast) ToString() string {
 	return string(b.ToBytes())
 }
 
-// broadcast as a sequence of bytes
+// Broadcast as a sequence of bytes
 func (reply *Broadcast) ToBytes() []byte {
 	interfaces := reply.ToJSON()
 	byt, err := json.Marshal(interfaces)
@@ -36,7 +42,7 @@ func (reply *Broadcast) ToBytes() []byte {
 	return byt
 }
 
-// create a new broadcast
+// Create a new broadcast
 func NewBroadcast(topic string, reply Reply) Broadcast {
 	return Broadcast{
 		Topic: topic,
@@ -44,7 +50,7 @@ func NewBroadcast(topic string, reply Reply) Broadcast {
 	}
 }
 
-// broadcast's actual data for the subscriber
+// Broadcast's actual data for the subscriber
 func (b *Broadcast) Reply() Reply {
 	return b.reply
 }
@@ -52,13 +58,18 @@ func (b *Broadcast) Reply() Reply {
 // Is OK
 func (r *Broadcast) IsOK() bool { return r.reply.IsOK() }
 
-// parse the zeromq messages into a broadcast
+// Parse the zeromq messages into a broadcast
 func ParseBroadcast(msgs []string) (Broadcast, error) {
 	msg := ""
 	for _, v := range msgs {
 		msg += v
 	}
 	i := strings.Index(msg, "{")
+
+	if i == -1 {
+		return Broadcast{}, errors.New("invalid message, no distinction between topic and reply")
+	}
+
 	topic := msg[:i]
 	broadcastRaw := msg[i:]
 
@@ -68,13 +79,14 @@ func ParseBroadcast(msgs []string) (Broadcast, error) {
 		return Broadcast{}, err
 	}
 
-	if dat["reply"] == nil {
-		return Broadcast{}, fmt.Errorf("no 'reply' parameter")
+	raw_reply, err := GetMap(dat, "reply")
+	if err != nil {
+		return Broadcast{}, err
 	}
 
-	reply, replyErr := ParseJsonReply(dat["reply"].(map[string]interface{}))
-	if replyErr != nil {
-		return Broadcast{}, replyErr
+	reply, err := ParseJsonReply(raw_reply)
+	if err != nil {
+		return Broadcast{}, err
 	}
 
 	return Broadcast{Topic: topic, reply: reply}, nil

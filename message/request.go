@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 )
 
-// The SDS Service will get a request
+// The SDS Service will accepts the Request message.
 type Request struct {
 	Command string
 	Param   map[string]interface{}
 }
 
-// Convert to JSON
+// Convert Request to JSON
 func (request *Request) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"command": request.Command,
@@ -18,7 +18,7 @@ func (request *Request) ToJSON() map[string]interface{} {
 	}
 }
 
-// Convert request to the sequence of bytes
+// Request message as a  sequence of bytes
 func (reply *Request) ToBytes() []byte {
 	interfaces := reply.ToJSON()
 	byt, err := json.Marshal(interfaces)
@@ -29,7 +29,7 @@ func (reply *Request) ToBytes() []byte {
 	return byt
 }
 
-// Convert request to the string
+// Convert Request message to the string
 func (reply *Request) ToString() string {
 	return string(reply.ToBytes())
 }
@@ -56,9 +56,18 @@ func ParseRequest(msgs []string) (Request, error) {
 		return Request{}, err
 	}
 
+	command, err := GetString(dat, "command")
+	if err != nil {
+		return Request{}, err
+	}
+	parameters, err := GetMap(dat, "params")
+	if err != nil {
+		return Request{}, err
+	}
+
 	request := Request{
-		Command: dat["command"].(string),
-		Param:   dat["params"].(map[string]interface{}),
+		Command: command,
+		Param:   parameters,
 	}
 
 	return request, nil
