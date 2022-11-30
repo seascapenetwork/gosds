@@ -1,35 +1,55 @@
+// The database package handles all the database operations.
+// Note that for now it uses Mysql as a hardcoded data
 package db
 
 import (
 	"database/sql"
-	"os"
+	"errors"
+	"fmt"
 
+	"github.com/blocklords/gosds/env"
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func EnvVars() []string {
-	return []string{
-		"DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT", "DB_NAME",
+// Creates a DSN (Data Source Name) with the database credentials
+func create_dsn() (string, error) {
+	if !env.Exists("DB_USER") {
+		return "", errors.New("the 'DB_USER' environment variable not set")
 	}
-}
-
-func getConf(name string) string {
-	value := os.Getenv("DB_" + name)
-	if len(value) == 0 {
-		panic("no 'DB_" + name + "' environment variable set")
+	if !env.Exists("DB_PASSWORD") {
+		return "", errors.New("the 'DB_PASSWORD' environment variable not set")
 	}
-	return value
+	if !env.Exists("DB_HOST") {
+		return "", errors.New("the 'DB_HOST' environment variable not set")
+	}
+	if !env.Exists("DB_PORT") {
+		return "", errors.New("the 'DB_PORT' environment variable not set")
+	}
+	if !env.Exists("DB_NAME") {
+		return "", errors.New("the 'DB_NAME' environment variable not set")
+	}
+
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s",
+		env.GetString("DB_USER"),
+		env.GetString("DB_PASSWORD"),
+		env.GetString("DB_HOST"),
+		env.GetString("DB_PORT"),
+		env.GetString("DB_NAME"),
+	)
+	return dsn, nil
 }
 
-func Dsn() string {
-	dsn := getConf("USER") + ":" + getConf("PASSWORD") + "@tcp(" + getConf("HOST") + ":" + getConf("PORT") + ")/" + getConf("NAME")
-	return dsn
-}
-
-func Open() *sql.DB {
-	db, err := sql.Open("mysql", Dsn())
+// Opens a connection to the database and returns it.
+func Open() (*sql.DB, error) {
+	dsn, err := create_dsn()
 	if err != nil {
-		panic(err.Error()) // Just for example purpose. You should use proper error handling instead of panic
+		return nil, err
 	}
-	return db
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }
