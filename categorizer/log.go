@@ -36,8 +36,8 @@ func (log *Log) AddMetadata(spaghetti_log *spaghetti.Log) *Log {
 
 // add the smartcontract to which this log belongs too using categorizer.Smartcontract
 func (log *Log) AddSmartcontractData(smartcontract *Smartcontract) *Log {
-	log.NetworkId = smartcontract.NetworkID()
-	log.Address = smartcontract.Address()
+	log.NetworkId = smartcontract.NetworkId
+	log.Address = smartcontract.Address
 	return log
 }
 
