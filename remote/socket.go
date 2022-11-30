@@ -146,3 +146,20 @@ func TcpPushSocketOrPanic(port uint) *zmq.Socket {
 
 	return sock
 }
+
+func TcpSubscriberOrPanic(e *env.Env) *Socket {
+	socket, sockErr := zmq.NewSocket(zmq.SUB)
+	if sockErr != nil {
+		panic(sockErr)
+	}
+
+	conErr := socket.Connect("tcp://" + e.BroadcastUrl())
+	if conErr != nil {
+		panic(conErr)
+	}
+
+	return &Socket{
+		remoteService: e,
+		socket:        socket,
+	}
+}
