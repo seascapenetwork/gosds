@@ -1,7 +1,7 @@
 package remote
 
 import (
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/blocklords/gosds/message"
@@ -21,18 +21,18 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 	return socket.socket.SetSubscribe(topic)
 }
 
-func (socket *Socket) Subscribe(reply chan message.Reply, timeout time.Duration) {
+func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
 		channel <- message.Fail(err.Error())
-		return 
+		return
+	}
 	if socketType != zmq.SUB {
 		channel <- message.Fail("the socket is not a Broadcast. Can not call subscribe")
 		return
 	}
 
 	fetched := false
-	fetchTime := time.Now()
 	time.AfterFunc(timeOut, func() {
 		if !fetched {
 			channel <- message.Fail("timeout for a message.\nPlease make sure SDS Spaghetti is running!")
@@ -40,7 +40,7 @@ func (socket *Socket) Subscribe(reply chan message.Reply, timeout time.Duration)
 	})
 
 	for {
-		msg_raw, err := socket.socket.RecvMessage(0)
+		msgRaw, err := socket.socket.RecvMessage(0)
 
 		fetched = true
 
