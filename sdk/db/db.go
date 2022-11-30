@@ -34,14 +34,17 @@ func OpenKVM(topicFilter *topic.TopicFilter) (*KVM, error) {
 	return &KVM{db: db, topicFilter: topicFilter}, nil
 }
 
-// Closes the database.
+// Closes the key-value database.
 // Its intended to be used with defer.
 func (kvm *KVM) Close() {
 	kvm.db.Close()
 }
 
+// Database keeps the topic filter of the subscribed data.
+// Return it.
 func (kvm *KVM) TopicFilter() *topic.TopicFilter { return kvm.topicFilter }
 
+// Block Timestamp of the smartcontract on the client side.
 func (kvm *KVM) KeyBlockTimestamp(key *static.SmartcontractKey) []byte {
 	topicString := kvm.topicFilter.ToString()
 	keyString := string(*key)
@@ -49,6 +52,7 @@ func (kvm *KVM) KeyBlockTimestamp(key *static.SmartcontractKey) []byte {
 	return []byte(fmt.Sprintf("%s_%s_sub_block_timestamp", topicString, keyString))
 }
 
+// Topic string of the smartcontract on the client side.
 func (kvm *KVM) KeyTopicString(key *static.SmartcontractKey) []byte {
 	topicString := kvm.topicFilter.ToString()
 	keyString := string(*key)
