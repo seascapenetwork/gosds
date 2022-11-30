@@ -2,7 +2,6 @@ package message
 
 import (
 	"encoding/json"
-	"errors"
 )
 
 // The SDS Service will get a request
@@ -17,33 +16,6 @@ func (request *Request) ToJSON() map[string]interface{} {
 		"command": request.Command,
 		"params":  request.Param,
 	}
-}
-
-// Extracts the casted type
-func (request *Request) ParameterUint64(name string) (uint64, error) {
-	raw, exists := request.Param[name]
-	if !exists {
-		return 0, errors.New("missing '" + name + "' parameter in the Request")
-	}
-	value, ok := raw.(float64)
-	if !ok {
-		return 0, errors.New("expected number type for '" + name + "' parameter")
-	}
-
-	return uint64(value), nil
-}
-
-func (request *Request) ParameterString(name string) (string, error) {
-	raw, exists := request.Param[name]
-	if !exists {
-		return "", errors.New("missing '" + name + "' parameter in the Request")
-	}
-	value, ok := raw.(string)
-	if !ok {
-		return "", errors.New("expected string type for '" + name + "' parameter")
-	}
-
-	return value, nil
 }
 
 // Convert request to the sequence of bytes
