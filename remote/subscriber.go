@@ -2,7 +2,6 @@ package remote
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/blocklords/gosds/message"
@@ -49,13 +48,8 @@ func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duratio
 			channel <- message.Fail(err.Error())
 			continue
 		}
-		msgStr := strings.Join(msgRaw[:], "")
 
-		if len(msgStr) == 0 {
-			channel <- message.Fail("Reconnect to the socket, it returned invalid message")
-			continue
-		}
-		broadcast, err := message.ParseBroadcast(msg_raw)
+		broadcast, err := message.ParseBroadcast(msgRaw)
 		if err != nil {
 			channel <- message.Fail("Error when parsing message: " + err.Error())
 			continue
