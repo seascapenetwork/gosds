@@ -1,3 +1,4 @@
+// The network package is used to get the blockchain network information.
 package network
 
 import (
@@ -15,6 +16,7 @@ const WITH_VM int8 = 1
 
 const WITHOUT_VM int8 = -1
 
+// Returns list of the supported networks by this SDS Service
 func GetSupportedNetworks(flag int8) map[string]string {
 	env := os.Getenv("SUPPORTED_NETWORKS")
 	if len(env) == 0 {
@@ -48,6 +50,7 @@ func GetSupportedNetworks(flag int8) map[string]string {
 	return supportedNetworks
 }
 
+// Returns list of support network IDs
 func GetNetworkIds(flag int8) []string {
 	supportedNetworks := GetSupportedNetworks(flag)
 
@@ -63,6 +66,7 @@ func GetNetworkIds(flag int8) []string {
 	return ids
 }
 
+// Whether the given network id is supported by this SDS Service.
 func IsSupportedNetwork(networkId string, flag int8) bool {
 	supportedNetworks := GetSupportedNetworks(flag)
 	if len(supportedNetworks) == 0 {
@@ -73,6 +77,7 @@ func IsSupportedNetwork(networkId string, flag int8) bool {
 	return ok
 }
 
+// Returns the Blockchain Network access provider
 func GetProvider(networkId string, flag int8) string {
 	if !IsSupportedNetwork(networkId, flag) {
 		return ""
