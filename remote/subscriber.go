@@ -29,7 +29,7 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
-		channel <- message.Fail(err.Error())
+		channel <- message.Fail("failed to check the socket type. the socket error: " + err.Error())
 		return
 	}
 	if socketType != zmq.SUB {
@@ -40,7 +40,7 @@ func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duratio
 	fetched := false
 	time.AfterFunc(timeOut, func() {
 		if !fetched {
-			channel <- message.Fail("timeout for a message.\nPlease make sure SDS Spaghetti is running!")
+			channel <- message.Fail("timeout")
 		}
 	})
 
