@@ -52,6 +52,13 @@ func (socket *Socket) RemoteBroadcastPort() (uint, error) {
 	return uint(port), nil
 }
 
+// Returns the HOST envrionment parameters of the socket.
+//
+// Use it if you want to create another socket from this socket.
+func (socket *Socket) RemoteEnv() *env.Env {
+	return socket.remoteService
+}
+
 // Send a command to the remote SDS service.
 // Note that it converts the failure reply into an error. Rather than replying reply itself back to user.
 // In case of successful request, the function returns reply parameters.

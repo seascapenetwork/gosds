@@ -7,27 +7,24 @@ import (
 
 	"github.com/blocklords/gosds/categorizer"
 	"github.com/blocklords/gosds/message"
-	sds_remote "github.com/blocklords/gosds/remote"
+	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/static"
 
 	"github.com/blocklords/gosds/sdk/db"
-	"github.com/blocklords/gosds/sdk/remote"
-
-	zmq "github.com/pebbe/zmq4"
 )
 
 type Subscriber struct {
 	Address           string // Account address granted for reading
 	timer             *time.Timer
-	socket            *sds_remote.Socket
+	socket            *remote.Socket
 	db                *db.KVM                    // it also keeps the topic filter
 	smartcontractKeys []*static.SmartcontractKey // list of smartcontract keys
 
 	BroadcastChan   chan message.Broadcast
-	broadcastSocket *zmq.Socket
+	broadcastSocket *remote.Socket
 }
 
-func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string) (*Subscriber, error) {
+func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*Subscriber, error) {
 	subscriber := Subscriber{
 		Address: address,
 		socket:  gatewaySocket,
@@ -38,19 +35,14 @@ func NewSubscriber(gatewaySocket *sds_remote.Socket, db *db.KVM, address string)
 }
 
 func (subscriber *Subscriber) startSubscriber() error {
-	var err error
-
 	// Run the Subscriber that is connected to the Broadcaster
-	subscriber.broadcastSocket, err = remote.NewSub(subscriber.socket.RemoteBroadcastUrl(), subscriber.Address)
-	if err != nil {
-		return fmt.Errorf("failed to establish a connection with SDS Gateway: " + err.Error())
-	}
+	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(subscriber.socket.RemoteEnv())
 
 	// Subscribing to the events, but we will not call the sub.ReceiveMessage
 	// until we will not get the snapshot of the missing data.
 	// ZMQ will queue the data until we will not call sub.ReceiveMessage.
 	for _, key := range subscriber.smartcontractKeys {
-		err := subscriber.broadcastSocket.SetSubscribe(string(*key))
+		err := subscriber.broadcastSocket.SetSubscribeFilter(string(*key))
 		if err != nil {
 			subscriber.broadcastSocket.Close()
 			return fmt.Errorf("failed to subscribe to the smartcontract: " + err.Error())
@@ -141,14 +133,23 @@ func (s *Subscriber) snapshot(i int, port uint) {
 
 		latestBlockNumber := uint64(0)
 		for i, rawTx := range rawTransactions {
-			transactions[i] = categorizer.ParseTransactionFromJson(rawTx)
+			tx, err := categorizer.ParseTransaction(rawTx)
+			if err != nil {
+				panic("failed to parse the transaction. the error: " + err.Error())
+			} else {
+				transactions[i] = tx
+			}
 
 			if uint64(transactions[i].BlockTimestamp) > latestBlockNumber {
 				latestBlockNumber = uint64(transactions[i].BlockTimestamp)
 			}
 		}
 		for i, rawLog := range rawLogs {
-			logs[i] = categorizer.ParseLog(rawLog)
+			log, err := categorizer.ParseLog(rawLog)
+			if err != nil {
+				panic("failed to parse the log. the error: " + err.Error())
+			}
+			logs[i] = log
 		}
 
 		err = s.db.SetBlockTimestamp(key, latestBlockNumber)
@@ -169,13 +170,13 @@ func (s *Subscriber) snapshot(i int, port uint) {
 		page++
 	}
 
-	sock := sds_remote.TcpPushSocketOrPanic(port)
+	sock := remote.TcpPushSocketOrPanic(port)
 	sock.SendMessage("")
 	sock.Close()
 }
 
 func (s *Subscriber) runSink(port uint, smartcontractAmount int) {
-	sock := sds_remote.TcpPullSocketOrPanic(port)
+	sock := remote.TcpPullSocketOrPanic(port)
 	defer sock.Close()
 
 	for {
@@ -257,36 +258,25 @@ func (s *Subscriber) loop() {
 	})
 
 	go s.heartbeat()
+	receive_channel := make(chan message.Reply)
+
+	s.broadcastSocket.Subscribe(receive_channel, time.Second*30)
 
 	for {
-		msg_raw, err := s.broadcastSocket.RecvMessage(0)
-		if err != nil {
-			s.BroadcastChan <- message.NewBroadcast("", message.Reply{Status: "fail", Message: "receive error: " + err.Error()})
-			break
-		}
-		// empty messages are skipped
-		if len(msg_raw) == 0 {
-			continue
-		}
+		reply := <-receive_channel
 
-		b, err := message.ParseBroadcast(msg_raw)
-		if err != nil {
-			s.BroadcastChan <- message.NewBroadcast(s.Address, message.Reply{Status: "fail", Message: "Error when parsing message " + err.Error()})
-			break
-		}
-
-		if !b.IsOK() {
+		if !reply.IsOK() {
 			//  Send results to sink
-			s.BroadcastChan <- b
+			s.BroadcastChan <- message.NewBroadcast("", reply)
 			//  Exit, assume that the Client will restart it.
 			// we might need to restart ourselves later.
 			break
 		}
 
 		// we skip the duplicate messages that were fetched by the Snapshot
-		networkId := b.Reply().Params["network_id"].(string)
-		address := b.Reply().Params["address"].(string)
-		blockTimestamp := uint64(b.Reply().Params["block_timestamp"].(float64))
+		networkId := reply.Params["network_id"].(string)
+		address := reply.Params["address"].(string)
+		blockTimestamp := uint64(reply.Params["block_timestamp"].(float64))
 		key := static.CreateSmartcontractKey(networkId, address)
 		latestBlockNumber := s.db.GetBlockTimestamp(&key)
 
@@ -295,6 +285,6 @@ func (s *Subscriber) loop() {
 		}
 
 		s.db.SetBlockTimestamp(&key, blockTimestamp)
-		s.BroadcastChan <- b
+		s.BroadcastChan <- message.NewBroadcast("", reply)
 	}
 }
