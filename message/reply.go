@@ -56,6 +56,7 @@ func ParseReply(msgs []string) (Reply, error) {
 }
 
 func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
+	fmt.Println("!!!kjhnjkhkjlhklj", dat)
 	if dat["status"] == nil {
 		return Reply{}, fmt.Errorf("no 'status' parameter")
 	}
