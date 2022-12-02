@@ -106,18 +106,24 @@ func RemoteConfiguration(socket *remote.Socket, t *topic.Topic) (*Configuration,
 		Command: "configuration_get",
 		Param:   t.ToJSON(),
 	}
-	params, err := socket.RequestRemoteService(&request)
+	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	returnedConfig := params["configuration"].(map[string]interface{})
-	returnedSmartcontract := params["smartcontract"].(map[string]interface{})
-	conf, err := NewConfiguration(returnedConfig)
+	raw_configuration, err := message.GetMap(parameters, "configuration")
 	if err != nil {
 		return nil, nil, err
 	}
-	smartcontract, err := NewSmartcontract(returnedSmartcontract)
+	raw_smartcontract, err := message.GetMap(parameters, "smartcontract")
+	if err != nil {
+		return nil, nil, err
+	}
+	conf, err := NewConfiguration(raw_configuration)
+	if err != nil {
+		return nil, nil, err
+	}
+	smartcontract, err := NewSmartcontract(raw_smartcontract)
 	if err != nil {
 		return nil, nil, err
 	}
