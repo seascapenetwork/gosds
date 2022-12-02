@@ -16,14 +16,12 @@ func RemoteBlockMintedTime(socket *remote.Socket, networkId string, blockNumber 
 		},
 	}
 
-	params, err := socket.RequestRemoteService(&request)
+	paramseters, err := socket.RequestRemoteService(&request)
 	if err != nil {
 		return 0, err
 	}
 
-	blockTimestamp := uint64(params["timestamp"].(float64))
-
-	return blockTimestamp, nil
+	return message.GetUint64(paramseters, "timestamp")
 }
 
 func RemoteBlockRange(socket *remote.Socket, networkId string, address string, from uint64, to uint64) (uint64, []Transaction, []Log, error) {
@@ -37,34 +35,42 @@ func RemoteBlockRange(socket *remote.Socket, networkId string, address string, f
 		},
 	}
 
-	params, err := socket.RequestRemoteService(&request)
+	paramseters, err := socket.RequestRemoteService(&request)
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	timestamp, err := message.GetUint64(params, "timestamp")
+	timestamp, err := message.GetUint64(paramseters, "timestamp")
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	raw_transactions, err := message.GetMapList(params, "transactions")
+	raw_transactions, err := message.GetMapList(paramseters, "transactions")
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	raw_logs, err := message.GetMapList(params, "logs")
+	raw_logs, err := message.GetMapList(paramseters, "logs")
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
 	transactions := make([]Transaction, len(raw_transactions))
 	for i, raw := range raw_transactions {
-		transactions[i] = ParseTransaction(raw)
+		tx, err := ParseTransaction(raw)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		transactions[i] = *tx
 	}
 
 	logs := make([]Log, len(raw_logs))
 	for i, raw := range raw_logs {
-		logs[i] = ParseLog(raw)
+		l, err := ParseLog(raw)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		logs[i] = *l
 	}
 
 	return timestamp, transactions, logs, nil

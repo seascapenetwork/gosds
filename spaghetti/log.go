@@ -3,6 +3,9 @@ package spaghetti
 
 import (
 	"encoding/json"
+	"errors"
+
+	"github.com/blocklords/gosds/message"
 )
 
 type Log struct {
@@ -34,6 +37,7 @@ func (b *Log) TxId() string {
 	return b.txId
 }
 
+// JSON representation of the spaghetti.Log
 func (b *Log) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"network_id": b.networkId,
@@ -45,6 +49,7 @@ func (b *Log) ToJSON() map[string]interface{} {
 	}
 }
 
+// JSON string representation of the spaghetti.Log
 func (b *Log) ToString() string {
 	interfaces := b.ToJSON()
 	byt, err := json.Marshal(interfaces)
@@ -55,31 +60,59 @@ func (b *Log) ToString() string {
 	return string(byt)
 }
 
-func ParseLog(log map[string]interface{}) Log {
-	rawTopics := log["topics"].([]interface{})
-	topics := make([]string, len(rawTopics))
-	for i, t := range rawTopics {
-		topics[i] = t.(string)
+// Convert the JSON into spaghetti.Log
+func ParseLog(parameters map[string]interface{}) (*Log, error) {
+	topics, err := message.GetStringList(parameters, "topics")
+	if err != nil {
+		return nil, err
+	}
+	network_id, err := message.GetString(parameters, "network_id")
+	if err != nil {
+		return nil, err
+	}
+	txid, err := message.GetString(parameters, "txid")
+	if err != nil {
+		return nil, err
+	}
+	log_index, err := message.GetUint64(parameters, "log_index")
+	if err != nil {
+		return nil, err
+	}
+	data, err := message.GetString(parameters, "data")
+	if err != nil {
+		return nil, err
+	}
+	address, err := message.GetString(parameters, "address")
+	if err != nil {
+		return nil, err
 	}
 
-	return Log{
-		networkId: log["network_id"].(string),
-		txId:      log["txid"].(string),
-		logIndex:  uint(log["log_index"].(float64)),
-		data:      log["data"].(string),
-		address:   log["address"].(string),
+	return &Log{
+		networkId: network_id,
+		address:   address,
+		txId:      txid,
+		logIndex:  uint(log_index),
+		data:      data,
 		topics:    topics,
-	}
+	}, nil
 }
 
-func ParseLogs(rawLogs []interface{}) []Log {
-	logs := make([]Log, len(rawLogs))
-	for i, rawLog := range rawLogs {
-		if rawLog == nil {
+// Parse list of Logs into array of spaghetti.Log
+func ParseLogs(raw_logs []interface{}) ([]*Log, error) {
+	logs := make([]*Log, len(raw_logs))
+	for i, raw := range raw_logs {
+		if raw == nil {
 			continue
 		}
-		l := ParseLog(rawLog.(map[string]interface{}))
+		log_map, ok := raw.(map[string]interface{})
+		if !ok {
+			return nil, errors.New("the log is not a map")
+		}
+		l, err := ParseLog(log_map)
+		if err != nil {
+			return nil, err
+		}
 		logs[i] = l
 	}
-	return logs
+	return logs, nil
 }
