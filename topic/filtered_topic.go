@@ -1,5 +1,7 @@
 package topic
 
+import "github.com/blocklords/gosds/message"
+
 type TopicFilter struct {
 	Organizations  []string
 	Projects       []string
@@ -53,10 +55,12 @@ func (t *TopicFilter) Len(level uint8) int {
 	}
 }
 
+// topic key
 func (t *TopicFilter) Key() TopicKey {
 	return TopicKey(t.ToString())
 }
 
+// list of path
 func list(properties []string) string {
 	str := ""
 	for _, v := range properties {
@@ -66,6 +70,7 @@ func list(properties []string) string {
 	return str
 }
 
+// Convert the topic filter object to the topic filter string.
 func (t *TopicFilter) ToString() string {
 	str := ""
 	if len(t.Organizations) > 0 {
@@ -93,8 +98,9 @@ func (t *TopicFilter) ToString() string {
 	return str
 }
 
-func ParseJSONToTopicFilter(obj map[string]interface{}) TopicFilter {
-	topic := TopicFilter{
+// Converts the JSON object to the topic.TopicFilter
+func ParseJSONToTopicFilter(parameters map[string]interface{}) (*TopicFilter, error) {
+	topic_filter := TopicFilter{
 		Organizations:  []string{},
 		Projects:       []string{},
 		NetworkIds:     []string{},
@@ -104,61 +110,34 @@ func ParseJSONToTopicFilter(obj map[string]interface{}) TopicFilter {
 		Events:         []string{},
 	}
 
-	if obj["n"] != nil {
-		n := obj["n"].([]interface{})
-		topic.NetworkIds = make([]string, len(n))
-		for i, o := range n {
-			topic.NetworkIds[i] = o.(string)
-		}
+	organizations, err := message.GetStringList(parameters, "o")
+	if err == nil {
+		topic_filter.Organizations = organizations
+	}
+	projects, err := message.GetStringList(parameters, "p")
+	if err == nil {
+		topic_filter.Projects = projects
+	}
+	network_ids, err := message.GetStringList(parameters, "n")
+	if err == nil {
+		topic_filter.NetworkIds = network_ids
+	}
+	groups, err := message.GetStringList(parameters, "g")
+	if err == nil {
+		topic_filter.Groups = groups
+	}
+	smartcontracts, err := message.GetStringList(parameters, "s")
+	if err == nil {
+		topic_filter.Smartcontracts = smartcontracts
+	}
+	methods, err := message.GetStringList(parameters, "m")
+	if err == nil {
+		topic_filter.Methods = methods
+	}
+	logs, err := message.GetStringList(parameters, "e")
+	if err == nil {
+		topic_filter.Events = logs
 	}
 
-	if obj["o"] != nil {
-		organizations := obj["o"].([]interface{})
-		topic.Organizations = make([]string, len(organizations))
-		for i, o := range organizations {
-			topic.Organizations[i] = o.(string)
-		}
-	}
-
-	if obj["p"] != nil {
-		projects := obj["p"].([]interface{})
-		topic.Projects = make([]string, len(projects))
-		for i, o := range projects {
-			topic.Projects[i] = o.(string)
-		}
-	}
-
-	if obj["g"] != nil {
-		g := obj["g"].([]interface{})
-		topic.Groups = make([]string, len(g))
-		for i, o := range g {
-			topic.Groups[i] = o.(string)
-		}
-	}
-
-	if obj["s"] != nil {
-		s := obj["s"].([]interface{})
-		topic.Smartcontracts = make([]string, len(s))
-		for i, o := range s {
-			topic.Smartcontracts[i] = o.(string)
-		}
-	}
-
-	if obj["m"] != nil {
-		m := obj["m"].([]interface{})
-		topic.Methods = make([]string, len(m))
-		for i, o := range m {
-			topic.Methods[i] = o.(string)
-		}
-	}
-
-	if obj["e"] != nil {
-		e := obj["e"].([]interface{})
-		topic.Events = make([]string, len(e))
-		for i, o := range e {
-			topic.Events[i] = o.(string)
-		}
-	}
-
-	return topic
+	return &topic_filter, nil
 }

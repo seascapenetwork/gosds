@@ -1,9 +1,12 @@
 package topic
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/blocklords/gosds/message"
 )
 
 type (
@@ -104,12 +107,25 @@ func (t *Topic) Level() uint8 {
 	return level
 }
 
-func ParseJSON(obj map[string]interface{}) Topic {
-	o := obj["o"].(string)
-	p := obj["p"].(string)
+// Parse JSON into the Topic
+func ParseJSON(parameters map[string]interface{}) (*Topic, error) {
+	organization, err := message.GetString(parameters, "o")
+	if err != nil {
+		return nil, err
+	}
+	if len(organization) == 0 {
+		return nil, errors.New("organization is empty")
+	}
+	project, err := message.GetString(parameters, "p")
+	if err != nil {
+		return nil, err
+	}
+	if len(project) == 0 {
+		return nil, errors.New("project is empty")
+	}
 	topic := Topic{
-		Organization:  o,
-		Project:       p,
+		Organization:  organization,
+		Project:       project,
 		NetworkId:     "",
 		Group:         "",
 		Smartcontract: "",
@@ -117,32 +133,32 @@ func ParseJSON(obj map[string]interface{}) Topic {
 		Event:         "",
 	}
 
-	n := obj["n"]
-	if n != nil {
-		topic.NetworkId = obj["n"].(string)
+	network_id, err := message.GetString(parameters, "n")
+	if err == nil {
+		topic.NetworkId = network_id
 	}
 
-	g := obj["g"]
-	if g != nil {
-		topic.Group = obj["g"].(string)
+	group, err := message.GetString(parameters, "g")
+	if err == nil {
+		topic.Group = group
 	}
 
-	s := obj["s"]
-	if s != nil {
-		topic.Smartcontract = obj["s"].(string)
+	smartcontract, err := message.GetString(parameters, "s")
+	if err == nil {
+		topic.Smartcontract = smartcontract
 	}
 
-	m := obj["m"]
-	if m != nil {
-		topic.Method = obj["m"].(string)
+	method, err := message.GetString(parameters, "m")
+	if err == nil {
+		topic.Method = method
 	}
 
-	e := obj["e"]
-	if e != nil {
-		topic.Event = obj["e"].(string)
+	event, err := message.GetString(parameters, "e")
+	if err == nil {
+		topic.Event = event
 	}
 
-	return topic
+	return &topic, nil
 }
 
 func isPathName(name string) bool {
@@ -206,18 +222,17 @@ func (t *Topic) setNewValue(pathName string, val string) error {
 //
 // The topic string is provided in the following string format:
 //
-//   `o:<organization>;p:<project>;n:<network id>;g:<group>;s:<smartcontract>;m:<method>`
-//   `o:<organization>;p:<project>;n:<network id>;g:<group>;s:<smartcontract>;e:<event>`
+//	`o:<organization>;p:<project>;n:<network id>;g:<group>;s:<smartcontract>;m:<method>`
+//	`o:<organization>;p:<project>;n:<network id>;g:<group>;s:<smartcontract>;e:<event>`
 //
 // ----------------------
 //
 // Rules
 //
-//  * the topic string can have either `method` or `event` but not both at the same time.
-//  * Topic string should contain atleast 'organization' and 'project'
-//  * Order of the path names does not matter: o:org;p:proj == p:proj;o:org
-//  * The values between `<` and `>` are literals and should return true by `isLiteral(literal)` function
-//
+//   - the topic string can have either `method` or `event` but not both at the same time.
+//   - Topic string should contain atleast 'organization' and 'project'
+//   - Order of the path names does not matter: o:org;p:proj == p:proj;o:org
+//   - The values between `<` and `>` are literals and should return true by `isLiteral(literal)` function
 func ParseString(topicString string) (Topic, error) {
 	parts := strings.Split(topicString, ";")
 	length := len(parts)
