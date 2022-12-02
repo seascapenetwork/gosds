@@ -243,6 +243,9 @@ func (s *Subscriber) loop() {
 		s.BroadcastChan <- message.NewBroadcast("", message.Reply{Status: "fail", Message: "Server is not responding"})
 	})
 
+	// todo
+	// use remote/Subscribe
+	// change heartbeat, upon expiration of the heartbeat start over.
 	receive_channel := make(chan message.Reply)
 
 	s.broadcastSocket.Subscribe(receive_channel, time.Second*30)
@@ -251,11 +254,25 @@ func (s *Subscriber) loop() {
 		reply := <-receive_channel
 
 		if !reply.IsOK() {
-			//  Send results to sink
-			s.BroadcastChan <- message.NewBroadcast("", reply)
-			//  Exit, assume that the Client will restart it.
-			// we might need to restart ourselves later.
-			break
+			if reply.Message != "timeout" {
+				//  Send results to sink
+				s.BroadcastChan <- message.NewBroadcast("", reply)
+				//  Exit, assume that the Client will restart it.
+				// we might need to restart ourselves later.
+				break
+			} else {
+				s.broadcastSocket.Close()
+
+				if err := s.startSubscriber(); err != nil {
+					fmt.Println("failed to start the subscriber")
+					s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to restart the subscriber: "+err.Error()))
+					break
+				}
+
+				s.broadcastSocket.Subscribe(receive_channel, time.Second*30)
+
+				break
+			}
 		}
 
 		// we skip the duplicate messages that were fetched by the Snapshot

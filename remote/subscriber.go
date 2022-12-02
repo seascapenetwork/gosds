@@ -26,7 +26,7 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 // The function is intended to be called as a gouritine.
 //
 // When a new message arrives, the method will send to the channel.
-func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duration) {
+func (socket *Socket) Subscribe(channel chan message.Reply, time_out time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
 		channel <- message.Fail("failed to check the socket type. the socket error: " + err.Error())
@@ -37,17 +37,14 @@ func (socket *Socket) Subscribe(channel chan message.Reply, timeOut time.Duratio
 		return
 	}
 
-	fetched := false
-	time.AfterFunc(timeOut, func() {
-		if !fetched {
-			channel <- message.Fail("timeout")
-		}
+	timer := time.AfterFunc(time_out, func() {
+		channel <- message.Fail("timeout")
 	})
 
 	for {
 		msgRaw, err := socket.socket.RecvMessage(0)
 
-		fetched = true
+		timer.Reset(time_out)
 
 		if err != nil {
 			channel <- message.Fail(err.Error())
