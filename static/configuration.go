@@ -113,11 +113,16 @@ func RemoteConfiguration(socket *remote.Socket, t *topic.Topic) (*Configuration,
 
 	returnedConfig := params["configuration"].(map[string]interface{})
 	returnedSmartcontract := params["smartcontract"].(map[string]interface{})
-	conf, err NewConfiguration(returnedConfig)
+	conf, err := NewConfiguration(returnedConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	return conf, NewSmartcontract(returnedSmartcontract), nil
+	smartcontract, err := NewSmartcontract(returnedSmartcontract)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return conf, smartcontract, nil
 }
 
 // Send a command to the SDS Static to register a new configuration

@@ -50,7 +50,8 @@ func (k *SmartcontractKey) Decompose() (string, string) {
 	return str[0], str[1]
 }
 
-func NewSmartcontract(body map[string]interface{}) *Smartcontract {
+// Creates a new smartcontract from the JSON
+func NewSmartcontract(body map[string]interface{}) (*Smartcontract, error) {
 	smartcontract := Smartcontract{}
 	smartcontract.exists = false
 	if body["network_id"] != nil {
@@ -78,7 +79,7 @@ func NewSmartcontract(body map[string]interface{}) *Smartcontract {
 		smartcontract.PreDeployBlockTimestamp = int(body["pre_deploy_block_timestamp"].(float64))
 	}
 
-	return &smartcontract
+	return &smartcontract, nil
 }
 
 func (smartcontract *Smartcontract) ToJSON() map[string]interface{} {
