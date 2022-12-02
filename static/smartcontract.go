@@ -45,6 +45,8 @@ func (c *Smartcontract) SetExists(exists bool) {
 	c.exists = exists
 }
 
+// The smartcontract parameters that composes the smartcontract key
+// its the network id and the address
 func (k *SmartcontractKey) Decompose() (string, string) {
 	str := strings.Split(string(*k), ".")
 	return str[0], str[1]
@@ -82,6 +84,7 @@ func NewSmartcontract(body map[string]interface{}) (*Smartcontract, error) {
 	return &smartcontract, nil
 }
 
+// JSON represantion of the static.Smartcontract
 func (smartcontract *Smartcontract) ToJSON() map[string]interface{} {
 	i := map[string]interface{}{}
 	i["network_id"] = smartcontract.NetworkId
@@ -95,6 +98,7 @@ func (smartcontract *Smartcontract) ToJSON() map[string]interface{} {
 	return i
 }
 
+// The JSON string represantion of the static.Smartcontract
 func (smartcontract *Smartcontract) ToString() string {
 	s := smartcontract.ToJSON()
 	byt, err := json.Marshal(s)
