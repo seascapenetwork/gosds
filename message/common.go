@@ -43,6 +43,30 @@ func GetString(parameters map[string]interface{}, name string) (string, error) {
 	return value, nil
 }
 
+// Returns list of strings
+func GetStringList(parameters map[string]interface{}, name string) ([]string, error) {
+	raw, exists := parameters[name]
+	if !exists {
+		return nil, errors.New("missing '" + name + "' parameter in the Request")
+	}
+	values, ok := raw.([]interface{})
+	if !ok {
+		return nil, errors.New("expected list type for '" + name + "' parameter")
+	}
+
+	list := make([]string, len(values))
+	for i, raw_value := range values {
+		v, ok := raw_value.(string)
+		if !ok {
+			return nil, errors.New("one of the elements in the parameter is not a string")
+		}
+
+		list[i] = v
+	}
+
+	return list, nil
+}
+
 // Returns the parameter as a slice of map:
 //
 // map[string]interface{}
