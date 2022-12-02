@@ -7,11 +7,11 @@ import (
 )
 
 type Transaction struct {
-	ID             string
+	ID             string // transaction key
 	NetworkId      string
 	Address        string
-	BlockNumber    int
-	BlockTimestamp int
+	BlockNumber    uint64
+	BlockTimestamp uint64
 	Txid           string
 	TxIndex        uint
 	TxFrom         string
@@ -39,36 +39,96 @@ func (b *Transaction) ToJSON() map[string]interface{} {
 	return i
 }
 
-func ParseTransactionFromJson(blob map[string]interface{}) *Transaction {
+// Creates a new transaction, an incomplete function.
+//
+// This method should be called as:
+//
+//	categorizer.NewTransaction().AddMetadata().AddSmartcontractData()
+func NewTransaction(method string, inputs map[string]interface{}, block_number uint64, block_timestamp uint64) *Transaction {
 	return &Transaction{
-		NetworkId:      blob["network_id"].(string),
-		Address:        blob["address"].(string),
-		BlockNumber:    int(blob["block_number"].(float64)),
-		BlockTimestamp: int(blob["block_timestamp"].(float64)),
-		Txid:           blob["txid"].(string),
-		TxIndex:        uint(blob["tx_index"].(float64)),
-		TxFrom:         blob["tx_from"].(string),
-		Method:         blob["method"].(string),
-		Args:           blob["arguments"].(map[string]interface{}),
-		Value:          blob["value"].(float64),
-	}
-}
-
-func ParseTransaction(tx spaghetti.Transaction, method string, inputs map[string]interface{}, c *Block, blockNumber int, blockTimestamp int) Transaction {
-	return Transaction{
-		NetworkId:      c.NetworkID(),
-		Address:        c.Address(),
-		BlockNumber:    blockNumber,
-		BlockTimestamp: blockTimestamp,
-		Txid:           tx.TxId(),
-		TxIndex:        tx.TxIndex(),
-		TxFrom:         tx.TxFrom(),
+		BlockNumber:    block_number,
+		BlockTimestamp: block_timestamp,
 		Method:         method,
 		Args:           inputs,
-		Value:          tx.Value(),
 	}
 }
 
+// Converts the JSON object into the corresponding transaction object.
+func ParseTransaction(blob map[string]interface{}) (*Transaction, error) {
+	network_id, err := message.GetString(blob, "network_id")
+	if err != nil {
+		return nil, err
+	}
+	address, err := message.GetString(blob, "address")
+	if err != nil {
+		return nil, err
+	}
+	block_number, err := message.GetUint64(blob, "block_number")
+	if err != nil {
+		return nil, err
+	}
+	block_timestamp, err := message.GetUint64(blob, "block_timestamp")
+	if err != nil {
+		return nil, err
+	}
+	txid, err := message.GetString(blob, "txid")
+	if err != nil {
+		return nil, err
+	}
+	tx_index, err := message.GetUint64(blob, "tx_index")
+	if err != nil {
+		return nil, err
+	}
+	tx_from, err := message.GetString(blob, "tx_from")
+	if err != nil {
+		return nil, err
+	}
+	method, err := message.GetString(blob, "method")
+	if err != nil {
+		return nil, err
+	}
+	args, err := message.GetMap(blob, "args")
+	if err != nil {
+		return nil, err
+	}
+
+	value, err := message.GetFloat64(blob, "value")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Transaction{
+		NetworkId:      network_id,
+		Address:        address,
+		BlockNumber:    block_number,
+		BlockTimestamp: block_timestamp,
+		Txid:           txid,
+		TxIndex:        uint(tx_index),
+		TxFrom:         tx_from,
+		Method:         method,
+		Args:           args,
+		Value:          value,
+	}, nil
+}
+
+// Add the metadata such as transaction address from the Spaghetti transaction
+func (transaction *Transaction) AddMetadata(spaghetti_transaction *spaghetti.Transaction) *Transaction {
+	transaction.Txid = spaghetti_transaction.TxId()
+	transaction.TxIndex = spaghetti_transaction.TxIndex()
+	transaction.TxFrom = spaghetti_transaction.TxFrom()
+	transaction.Value = spaghetti_transaction.Value()
+
+	return transaction
+}
+
+// Add the smartcontract to which it belongs to from categorizer.Smartcontract
+func (transaction *Transaction) AddSmartcontractData(smartcontract *Smartcontract) *Transaction {
+	transaction.NetworkId = smartcontract.NetworkId
+	transaction.Address = smartcontract.Address
+	return transaction
+}
+
+// Returns amount of transactions for the smartcontract keys within a certain block timestamp range.
 func RemoteTransactionAmount(socket *remote.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string) (int, error) {
 	request := message.Request{
 		Command: "transaction_amount",
@@ -88,6 +148,9 @@ func RemoteTransactionAmount(socket *remote.Socket, blockTimestampFrom int, bloc
 	return txAmount, nil
 }
 
+// Return transactions for smartcontract keys within a certain time range.
+//
+// It accepts a page and limit
 func RemoteTransactions(socket *remote.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string, page int, limit uint) ([]*Transaction, error) {
 	request := message.Request{
 		Command: "transaction_get_all",
@@ -108,7 +171,10 @@ func RemoteTransactions(socket *remote.Socket, blockTimestampFrom int, blockTime
 	raws := params["transactions"].([]interface{})
 	transactions := make([]*Transaction, len(raws))
 	for i, raw := range raws {
-		transactions[i] = ParseTransactionFromJson(raw.(map[string]interface{}))
+		transactions[i], err = ParseTransaction(raw.(map[string]interface{}))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return transactions, nil

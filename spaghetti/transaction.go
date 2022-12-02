@@ -3,6 +3,9 @@ package spaghetti
 
 import (
 	"encoding/json"
+
+	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/remote"
 )
 
 type Transaction struct {
@@ -101,4 +104,27 @@ func ParseTransactions(txs []interface{}) []Transaction {
 		transactions = append(transactions, transaction)
 	}
 	return transactions
+}
+
+func RemoteTransactionDeployed(socket *remote.Socket, networkId string, txid string) (string, string, uint64, uint64, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "transaction_deployed_get",
+		Param: map[string]interface{}{
+			"network_id": networkId,
+			"txid":       txid,
+		},
+	}
+
+	params, err := socket.RequestRemoteService(&request)
+	if err != nil {
+		return "", "", 0, 0, err
+	}
+
+	address := params["address"].(string)
+	deployer := params["deployer"].(string)
+	blockNumber := uint64(params["block_number"].(float64))
+	blockTimestamp := uint64(params["block_timestamp"].(float64))
+
+	return address, deployer, blockNumber, blockTimestamp, nil
 }

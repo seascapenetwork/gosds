@@ -4,18 +4,21 @@ import (
 	"encoding/json"
 )
 
+// The SDS Service will accepts the Request message.
 type Request struct {
 	Command string
 	Param   map[string]interface{}
 }
 
-func (reply *Request) ToJSON() map[string]interface{} {
+// Convert Request to JSON
+func (request *Request) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"command": reply.Command,
-		"params":  reply.Param,
+		"command": request.Command,
+		"params":  request.Param,
 	}
 }
 
+// Request message as a  sequence of bytes
 func (reply *Request) ToBytes() []byte {
 	interfaces := reply.ToJSON()
 	byt, err := json.Marshal(interfaces)
@@ -26,10 +29,12 @@ func (reply *Request) ToBytes() []byte {
 	return byt
 }
 
+// Convert Request message to the string
 func (reply *Request) ToString() string {
 	return string(reply.ToBytes())
 }
 
+// Messages from zmq concatenated
 func ToString(msgs []string) string {
 	msg := ""
 	for _, v := range msgs {
@@ -38,6 +43,7 @@ func ToString(msgs []string) string {
 	return msg
 }
 
+// Parse the messages from zeromq into the Request
 func ParseRequest(msgs []string) (Request, error) {
 	msg := ""
 	for _, v := range msgs {
@@ -50,5 +56,19 @@ func ParseRequest(msgs []string) (Request, error) {
 		return Request{}, err
 	}
 
-	return Request{Command: dat["command"].(string), Param: dat["params"].(map[string]interface{})}, nil
+	command, err := GetString(dat, "command")
+	if err != nil {
+		return Request{}, err
+	}
+	parameters, err := GetMap(dat, "params")
+	if err != nil {
+		return Request{}, err
+	}
+
+	request := Request{
+		Command: command,
+		Param:   parameters,
+	}
+
+	return request, nil
 }

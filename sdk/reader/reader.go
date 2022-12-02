@@ -2,18 +2,17 @@ package reader
 
 import (
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/topic"
-
-	"github.com/blocklords/gosds/sdk/remote"
 )
 
 type Reader struct {
-	host    string // SDS Gateway host
-	address string // Account address granted for reading
+	socket  *remote.Socket // SDS Gateway
+	address string         // Account address granted for reading
 }
 
-func NewReader(host string, address string) *Reader {
-	return &Reader{host: host, address: address}
+func NewReader(gatewaySocket *remote.Socket, address string) *Reader {
+	return &Reader{socket: gatewaySocket, address: address}
 }
 
 func (r *Reader) Read(t topic.Topic, args map[string]interface{}) message.Reply {
@@ -21,7 +20,7 @@ func (r *Reader) Read(t topic.Topic, args map[string]interface{}) message.Reply 
 		return message.Fail(`Topic should contain method name`)
 	}
 
-	msg := message.Request{
+	request := message.Request{
 		Command: "smartcontract_read",
 		Param: map[string]interface{}{
 			"topic_string": t.ToString(topic.FULL_LEVEL),
@@ -30,5 +29,10 @@ func (r *Reader) Read(t topic.Topic, args map[string]interface{}) message.Reply 
 		},
 	}
 
-	return remote.ReqReply(r.host, msg)
+	params, err := r.socket.RequestRemoteService(&request)
+	if err != nil {
+		return message.Fail(err.Error())
+	}
+
+	return message.Reply{Status: "OK", Message: "", Params: params}
 }

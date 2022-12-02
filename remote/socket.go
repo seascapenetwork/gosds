@@ -1,4 +1,5 @@
-// This package defines a data types, functions that interacts with a remote SDS service.
+// This package defines the data types, and methods that interact with a remote SDS service.
+//
 // The request reply socket follows the Lazy Pirate pattern.
 //
 // Example using pebbe/zmq4 is here:
@@ -10,6 +11,7 @@ package remote
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/blocklords/gosds/env"
@@ -18,7 +20,7 @@ import (
 )
 
 // Over the socket the remote call is happening.
-// its a wrapper of zeromq socket.
+// This is the wrapper of zeromq socket. Wrapper enables to create larger network patterns.
 type Socket struct {
 	// The name of remote SDS service and its URL
 	// its used as a clarification
@@ -26,6 +28,7 @@ type Socket struct {
 	socket        *zmq.Socket
 }
 
+// Request-Reply checks the internet connection after this amount of time.
 const (
 	REQUEST_TIMEOUT = 60 * time.Second //  msecs, (> 1000!)
 )
@@ -33,6 +36,20 @@ const (
 // Close the remote connection
 func (socket *Socket) Close() {
 	socket.socket.Close()
+}
+
+// Broadcaster URL of the SDS Service
+func (socket *Socket) RemoteBroadcastUrl() string {
+	return socket.remoteService.BroadcastUrl()
+}
+
+// Broadcaster Port of the SDS Service
+func (socket *Socket) RemoteBroadcastPort() (uint, error) {
+	port, err := strconv.Atoi(socket.remoteService.BroadcastPort())
+	if err != nil {
+		return 0, err
+	}
+	return uint(port), nil
 }
 
 // Send a command to the remote SDS service.
@@ -102,6 +119,8 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 	}
 }
 
+// Create a new Socket on TCP protocol otherwise exit from the program
+// The socket is the wrapper over zmq.REQ
 func TcpRequestSocketOrPanic(e *env.Env) *Socket {
 	if !e.UrlExist() {
 		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port"))
@@ -115,5 +134,46 @@ func TcpRequestSocketOrPanic(e *env.Env) *Socket {
 	return &Socket{
 		remoteService: e,
 		socket:        sock,
+	}
+}
+
+// Create a new Socket on TCP protocol otherwise exit from the program
+// The socket is the wrapper over zmq.PULL
+func TcpPullSocketOrPanic(port uint) *zmq.Socket {
+	sock, _ := zmq.NewSocket(zmq.PULL)
+	if err := sock.Bind(fmt.Sprintf("tcp://*:%d", port)); err != nil {
+		panic(fmt.Errorf("error to create a pull socket at port %d", port))
+	}
+
+	return sock
+}
+
+// Create a new Socket on TCP protocol otherwise exit from the program
+// The socket is the wrapper over zmq.PUSH
+func TcpPushSocketOrPanic(port uint) *zmq.Socket {
+	sock, _ := zmq.NewSocket(zmq.PUSH)
+	if err := sock.Connect(fmt.Sprintf("tcp://localhost:%d", port)); err != nil {
+		panic(fmt.Errorf("error to create a push socket at port %d", port))
+	}
+
+	return sock
+}
+
+// Create a new Socket on TCP protocol otherwise exit from the program
+// The socket is the wrapper over zmq.SUB
+func TcpSubscriberOrPanic(e *env.Env) *Socket {
+	socket, sockErr := zmq.NewSocket(zmq.SUB)
+	if sockErr != nil {
+		panic(sockErr)
+	}
+
+	conErr := socket.Connect("tcp://" + e.BroadcastUrl())
+	if conErr != nil {
+		panic(conErr)
+	}
+
+	return &Socket{
+		remoteService: e,
+		socket:        socket,
 	}
 }

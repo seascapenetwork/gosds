@@ -1,6 +1,6 @@
 /*
 Controller package is the interface of the module.
-It acts as the input receiver for other services.
+It acts as the input receiver for other services or for external users.
 */
 package controller
 

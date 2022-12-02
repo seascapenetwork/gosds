@@ -2,18 +2,17 @@ package writer
 
 import (
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/topic"
-
-	"github.com/blocklords/gosds/sdk/remote"
 )
 
 type Writer struct {
-	host    string // SDS Gateway host
-	address string // Account address granted for reading
+	socket  *remote.Socket // SDS Gateway host
+	address string         // Account address granted for reading
 }
 
-func NewWriter(host string, address string) *Writer {
-	return &Writer{host: host, address: address}
+func NewWriter(gatewaySocket *remote.Socket, address string) *Writer {
+	return &Writer{socket: gatewaySocket, address: address}
 }
 
 func (r *Writer) Write(t topic.Topic, args map[string]interface{}) message.Reply {
@@ -21,7 +20,7 @@ func (r *Writer) Write(t topic.Topic, args map[string]interface{}) message.Reply
 		return message.Fail(`Topic should contain method name`)
 	}
 
-	msg := message.Request{
+	request := message.Request{
 		Command: "smartcontract_write",
 		Param: map[string]interface{}{
 			"topic_string": t.ToString(topic.FULL_LEVEL),
@@ -30,7 +29,12 @@ func (r *Writer) Write(t topic.Topic, args map[string]interface{}) message.Reply
 		},
 	}
 
-	return remote.ReqReply(r.host, msg)
+	params, err := r.socket.RequestRemoteService(&request)
+	if err != nil {
+		return message.Fail(err.Error())
+	}
+
+	return message.Reply{Status: "OK", Message: "", Params: params}
 }
 
 func (r *Writer) AddToPool(t topic.Topic, args map[string]interface{}) message.Reply {
@@ -38,7 +42,7 @@ func (r *Writer) AddToPool(t topic.Topic, args map[string]interface{}) message.R
 		return message.Fail(`Topic should contain method name`)
 	}
 
-	msg := message.Request{
+	request := message.Request{
 		Command: "pool_add",
 		Param: map[string]interface{}{
 			"topic_string": t.ToString(topic.FULL_LEVEL),
@@ -47,5 +51,10 @@ func (r *Writer) AddToPool(t topic.Topic, args map[string]interface{}) message.R
 		},
 	}
 
-	return remote.ReqReply(r.host, msg)
+	params, err := r.socket.RequestRemoteService(&request)
+	if err != nil {
+		return message.Fail(err.Error())
+	}
+
+	return message.Reply{Status: "OK", Message: "", Params: params}
 }
