@@ -17,6 +17,14 @@ type Abi struct {
 	exists  bool
 }
 
+// Creates the JSON object with abi hash and abi body.
+func (abi *Abi) ToJSON() map[string]interface{} {
+	return map[string]interface{}{
+		"abi":      abi.Body,
+		"abi_hash": abi.AbiHash,
+	}
+}
+
 func (a *Abi) CalculateAbiHash() {
 	hash := crypto.Keccak256Hash(a.Bytes)
 	a.AbiHash = hash.String()[2:10]
