@@ -25,19 +25,25 @@ func (abi *Abi) ToJSON() map[string]interface{} {
 	}
 }
 
+// Creates the abi hash from the abi body
+// The abi hash is the unique identifier of the abi
 func (a *Abi) CalculateAbiHash() {
 	hash := crypto.Keccak256Hash(a.Bytes)
 	a.AbiHash = hash.String()[2:10]
 }
 
+// check whether the abi when its build was built from the database or in memory
 func (a *Abi) Exists() bool {
 	return a.exists
 }
 
+// set the exists flag
 func (a *Abi) SetExists(exists bool) {
 	a.exists = exists
 }
 
+// creates the Abi data based on the abi JSON. The function calculates the abi hash
+// but won't set it in the database.
 func NewAbi(body interface{}) (*Abi, error) {
 	abi := Abi{Body: body, exists: false}
 	byt, err := json.Marshal(body)
@@ -51,6 +57,8 @@ func NewAbi(body interface{}) (*Abi, error) {
 	return &abi, nil
 }
 
+// creates the Abi data based on the JSON string. This function calculates the abi hash
+// but won't set it in the database.
 func NewAbiFromBytes(bytes []byte) *Abi {
 	body := []interface{}{}
 	err := json.Unmarshal(bytes, &body)
@@ -75,6 +83,7 @@ func RemoteAbiRegister(socket *remote.Socket, body interface{}) (map[string]inte
 	return socket.RequestRemoteService(&request)
 }
 
+// Returns the abi from the remote server
 func RemoteAbi(socket *remote.Socket, abi_hash string) (*Abi, error) {
 	// Send hello.
 	request := message.Request{
