@@ -2,6 +2,7 @@ package static
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/blocklords/gosds/message"
@@ -98,7 +99,12 @@ func RemoteAbi(socket *remote.Socket, abi_hash string) (*Abi, error) {
 		return nil, err
 	}
 
-	new_abi, err := NewAbi(params["abi"])
+	abi_bytes, ok := params["abi"]
+	if !ok {
+		return nil, errors.New("missing 'abi' parameter from the SDS Static 'abi_get' command")
+	}
+
+	new_abi, err := NewAbi(abi_bytes)
 	if err != nil {
 		return nil, err
 	}
