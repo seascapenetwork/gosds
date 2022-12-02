@@ -2,6 +2,7 @@ package static
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/blocklords/gosds/message"
@@ -136,16 +137,27 @@ func RemoteSmartcontracts(socket *remote.Socket, tf *topic.TopicFilter) ([]*Smar
 		return nil, nil, err
 	}
 
-	rawSmartcontracts := params["smartcontracts"].([]interface{})
-	rawTopics := params["topics"].([]interface{})
-	var smartcontracts []*Smartcontract = make([]*Smartcontract, len(rawSmartcontracts))
-	var topicStrings []string = make([]string, len(rawSmartcontracts))
-	for i, rawSmartcontract := range rawSmartcontracts {
-		smartcontracts[i] = NewSmartcontract(rawSmartcontract.(map[string]interface{}))
-		topicStrings[i] = rawTopics[i].(string)
+	raw_smartcontracts, err := message.GetMapList(params, "smartcontracts")
+	if err != nil {
+		return nil, nil, err
+	}
+	topic_strings, err := message.GetStringList(params, "topics")
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(raw_smartcontracts) != len(topic_strings) {
+		return nil, nil, errors.New("the returned amount of topic strings mismatch with smartcontracts")
+	}
+	var smartcontracts []*Smartcontract = make([]*Smartcontract, len(raw_smartcontracts))
+	for i, raw_smartcontract := range raw_smartcontracts {
+		smartcontract, err := NewSmartcontract(raw_smartcontract)
+		if err != nil {
+			return nil, nil, err
+		}
+		smartcontracts[i] = smartcontract
 	}
 
-	return smartcontracts, topicStrings, nil
+	return smartcontracts, topic_strings, nil
 }
 
 // returns list of smartcontract keys by topic filter
@@ -162,22 +174,29 @@ func RemoteSmartcontractKeys(socket *remote.Socket, tf *topic.TopicFilter) (Filt
 		return nil, err
 	}
 
-	rawKeys := params["smartcontract_keys"].(map[string]interface{})
-	var keys FilteredSmartcontractKeys = make(FilteredSmartcontractKeys, len(rawKeys))
-	for key, topicString := range rawKeys {
-		keys[SmartcontractKey(key)] = topicString.(string)
+	raw_keys, err := message.GetMap(params, "smartcontract_keys")
+	if err != nil {
+		return nil, err
+	}
+	var keys FilteredSmartcontractKeys = make(FilteredSmartcontractKeys, len(raw_keys))
+	for key, raw_value := range raw_keys {
+		topic_string, ok := raw_value.(string)
+		if !ok {
+			return nil, errors.New("one of the topic strings is not in the string format")
+		}
+		keys[SmartcontractKey(key)] = topic_string
 	}
 
 	return keys, nil
 }
 
 // returns smartcontract by smartcontract key from SDS Static
-func RemoteSmartcontract(socket *remote.Socket, networkId string, address string) (*Smartcontract, error) {
+func RemoteSmartcontract(socket *remote.Socket, network_id string, address string) (*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_get",
 		Param: map[string]interface{}{
-			"network_id": networkId,
+			"network_id": network_id,
 			"address":    address,
 		},
 	}
@@ -186,8 +205,11 @@ func RemoteSmartcontract(socket *remote.Socket, networkId string, address string
 		return nil, err
 	}
 
-	returnedSmartcontract := params["smartcontract"].(map[string]interface{})
-	return NewSmartcontract(returnedSmartcontract), nil
+	raw_smartcontract, err := message.GetMap(params, "smartcontract")
+	if err != nil {
+		return nil, err
+	}
+	return NewSmartcontract(raw_smartcontract)
 }
 
 func RemoteSmartcontractRegister(socket *remote.Socket, s *Smartcontract) (string, error) {
@@ -202,6 +224,5 @@ func RemoteSmartcontractRegister(socket *remote.Socket, s *Smartcontract) (strin
 		return "", err
 	}
 
-	address := params["address"].(string)
-	return address, nil
+	return message.GetString(params, "address")
 }
