@@ -2,12 +2,7 @@ package message
 
 import (
 	"encoding/json"
-<<<<<<< HEAD
-	"fmt"
-	"time"
-=======
 	"errors"
->>>>>>> main
 )
 
 // SDS Service returns the reply. Anyone who sends a request to the SDS Service gets this message.
@@ -79,19 +74,19 @@ func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
 		reply.Status = status
 	}
 
-//<<<<<<< HEAD
-//	replyMessage := ""
-//	if dat["message"] != nil {
-//		fmt.Println("[", time.Now().Local(), "] got message: ", dat)
-//		jsonError, _ := json.Marshal(dat["message"])
-//		replyMessage = string(jsonError)
-//=======
+	//<<<<<<< HEAD
+	//	replyMessage := ""
+	//	if dat["message"] != nil {
+	//		fmt.Println("[", time.Now().Local(), "] got message: ", dat)
+	//		jsonError, _ := json.Marshal(dat["message"])
+	//		replyMessage = string(jsonError)
+	//=======
 	message, err := GetString(dat, "message")
 	if err != nil {
 		return reply, err
 	} else {
 		reply.Message = message
-//>>>>>>> main
+		//>>>>>>> main
 	}
 
 	parameters, err := GetMap(dat, "params")
