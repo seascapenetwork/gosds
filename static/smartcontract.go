@@ -53,34 +53,47 @@ func (k *SmartcontractKey) Decompose() (string, string) {
 }
 
 // Creates a new smartcontract from the JSON
-func NewSmartcontract(body map[string]interface{}) (*Smartcontract, error) {
-	smartcontract := Smartcontract{}
-	smartcontract.exists = false
-	if body["network_id"] != nil {
-		smartcontract.NetworkId = body["network_id"].(string)
+func NewSmartcontract(parameters map[string]interface{}) (*Smartcontract, error) {
+	network_id, err := message.GetString(parameters, "network_id")
+	if err != nil {
+		return nil, err
 	}
-	if body["address"] != nil {
-		smartcontract.Address = body["address"].(string)
+	address, err := message.GetString(parameters, "address")
+	if err != nil {
+		return nil, err
 	}
-	if body["abi_hash"] != nil {
-		smartcontract.AbiHash = body["abi_hash"].(string)
+	abi_hash, err := message.GetString(parameters, "abi_hash")
+	if err != nil {
+		return nil, err
 	}
-	if body["txid"] != nil {
-		smartcontract.Txid = body["txid"].(string)
+	txid, err := message.GetString(parameters, "txid")
+	if err != nil {
+		return nil, err
 	}
-	// optional parameter
-	if body["deployer"] != nil {
-		smartcontract.Deployer = body["deployer"].(string)
-	} else {
-		smartcontract.Deployer = ""
+	// optional parameters
+	deployer, err := message.GetString(parameters, "deployer")
+	if err != nil {
+		deployer = ""
 	}
-	if body["pre_deploy_block_number"] != nil {
-		smartcontract.PreDeployBlockNumber = int(body["pre_deploy_block_number"].(float64))
+	pre_deploy_block_number, err := message.GetUint64(parameters, "pre_deploy_block_number")
+	if err != nil {
+		pre_deploy_block_number = 0
 	}
-	if body["pre_deploy_block_timestamp"] != nil {
-		smartcontract.PreDeployBlockTimestamp = int(body["pre_deploy_block_timestamp"].(float64))
+	pre_deploy_block_timestamp, err := message.GetUint64(parameters, "pre_deploy_block_timestamp")
+	if err != nil {
+		return nil, err
 	}
 
+	smartcontract := Smartcontract{
+		exists:                  false,
+		NetworkId:               network_id,
+		Address:                 address,
+		AbiHash:                 abi_hash,
+		Txid:                    txid,
+		Deployer:                deployer,
+		PreDeployBlockNumber:    int(pre_deploy_block_number),
+		PreDeployBlockTimestamp: int(pre_deploy_block_timestamp),
+	}
 	return &smartcontract, nil
 }
 
