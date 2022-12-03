@@ -9,43 +9,23 @@ import (
 )
 
 type Log struct {
-	networkId string
-	txId      string // txId column
-	logIndex  uint
-	data      string // text data type
-	topics    []string
-	address   string
-}
-
-func (b *Log) NetworkID() string {
-	return b.networkId
-}
-
-func (b *Log) LogIndex() uint {
-	return b.logIndex
-}
-
-func (b *Log) Data() string {
-	return b.data
-}
-
-func (b *Log) Topics() []string {
-	return b.topics
-}
-
-func (b *Log) TxId() string {
-	return b.txId
+	NetworkId string
+	Txid      string // txId column
+	LogIndex  uint
+	Data      string // text data type
+	Topics    []string
+	Address   string
 }
 
 // JSON representation of the spaghetti.Log
 func (b *Log) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"network_id": b.networkId,
-		"txid":       b.txId,
-		"log_index":  b.logIndex,
-		"data":       b.data,
-		"topics":     b.topics,
-		"address":    b.address,
+		"network_id": b.NetworkId,
+		"txid":       b.Txid,
+		"log_index":  b.LogIndex,
+		"data":       b.Data,
+		"topics":     b.Topics,
+		"address":    b.Address,
 	}
 }
 
@@ -88,13 +68,35 @@ func ParseLog(parameters map[string]interface{}) (*Log, error) {
 	}
 
 	return &Log{
-		networkId: network_id,
-		address:   address,
-		txId:      txid,
-		logIndex:  uint(log_index),
-		data:      data,
-		topics:    topics,
+		NetworkId: network_id,
+		Address:   address,
+		Txid:      txid,
+		LogIndex:  uint(log_index),
+		Data:      data,
+		Topics:    topics,
 	}, nil
+}
+
+// Serielizes the Log.Topics into the byte array
+func (b *Log) TopicRaw() []byte {
+	byt, err := json.Marshal(b.Topics)
+	if err != nil {
+		return []byte{}
+	}
+
+	return byt
+}
+
+// Converts the byte series into the topic list
+func (b *Log) ParseTopics(raw []byte) error {
+	var topics []string
+	err := json.Unmarshal(raw, &topics)
+	if err != nil {
+		return err
+	}
+	b.Topics = topics
+
+	return nil
 }
 
 // Parse list of Logs into array of spaghetti.Log
