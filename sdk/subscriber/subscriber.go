@@ -34,7 +34,7 @@ func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*S
 	return &subscriber, nil
 }
 
-func (subscriber *Subscriber) startSubscriber() error {
+func (subscriber *Subscriber) start_subscriber() error {
 	// Run the Subscriber that is connected to the Broadcaster
 	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(subscriber.socket.RemoteEnv())
 
@@ -62,7 +62,7 @@ func (s *Subscriber) Start() error {
 		return err
 	}
 
-	if err := s.startSubscriber(); err != nil {
+	if err := s.start_subscriber(); err != nil {
 		return err
 	}
 
@@ -263,7 +263,7 @@ func (s *Subscriber) loop() {
 			} else {
 				s.broadcastSocket.Close()
 
-				if err := s.startSubscriber(); err != nil {
+				if err := s.start_subscriber(); err != nil {
 					fmt.Println("failed to start the subscriber")
 					s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to restart the subscriber: "+err.Error()))
 					break
