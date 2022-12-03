@@ -1,6 +1,8 @@
 package message
 
-import "errors"
+import (
+	"errors"
+)
 
 // Returns the parameter as an uint64
 func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
@@ -69,7 +71,7 @@ func GetStringList(parameters map[string]interface{}, name string) ([]string, er
 
 // Returns the parameter as a slice of map:
 //
-// map[string]interface{}
+// []map[string]interface{}
 func GetMapList(parameters map[string]interface{}, name string) ([]map[string]interface{}, error) {
 	raw, exists := parameters[name]
 	if !exists {
@@ -93,6 +95,9 @@ func GetMapList(parameters map[string]interface{}, name string) ([]map[string]in
 	return list, nil
 }
 
+// Returns the parameter as a map:
+//
+// map[string]interface{}
 func GetMap(parameters map[string]interface{}, name string) (map[string]interface{}, error) {
 	raw, exists := parameters[name]
 	if !exists {
