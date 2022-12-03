@@ -113,10 +113,10 @@ func ParseTransaction(blob map[string]interface{}) (*Transaction, error) {
 
 // Add the metadata such as transaction address from the Spaghetti transaction
 func (transaction *Transaction) AddMetadata(spaghetti_transaction *spaghetti.Transaction) *Transaction {
-	transaction.Txid = spaghetti_transaction.TxId()
-	transaction.TxIndex = spaghetti_transaction.TxIndex()
-	transaction.TxFrom = spaghetti_transaction.TxFrom()
-	transaction.Value = spaghetti_transaction.Value()
+	transaction.Txid = spaghetti_transaction.Txid
+	transaction.TxIndex = spaghetti_transaction.TxIndex
+	transaction.TxFrom = spaghetti_transaction.TxFrom
+	transaction.Value = spaghetti_transaction.Value
 
 	return transaction
 }

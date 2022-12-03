@@ -29,8 +29,8 @@ func NewLog(log string, output map[string]interface{}) *Log {
 
 // Add the metadata such as transaction id and log index from spaghetti data
 func (log *Log) AddMetadata(spaghetti_log *spaghetti.Log) *Log {
-	log.Txid = spaghetti_log.TxId()
-	log.LogIndex = spaghetti_log.LogIndex()
+	log.Txid = spaghetti_log.Txid
+	log.LogIndex = spaghetti_log.LogIndex
 	return log
 }
 
