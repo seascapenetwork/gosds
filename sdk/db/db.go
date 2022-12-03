@@ -26,7 +26,9 @@ func OpenKVM(topicFilter *topic.TopicFilter) (*KVM, error) {
 		return nil, fmt.Errorf("missing '%s' envrionment variable", dbPathName)
 	}
 
-	db, err := pebble.Open(dbPathName, &pebble.Options{})
+	db_path := env.GetString(dbPathName)
+
+	db, err := pebble.Open(db_path, &pebble.Options{})
 	if err != nil {
 		return nil, err
 	}
