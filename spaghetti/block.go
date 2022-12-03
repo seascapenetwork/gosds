@@ -24,7 +24,7 @@ func RemoteBlockMintedTime(socket *remote.Socket, networkId string, blockNumber 
 	return message.GetUint64(paramseters, "timestamp")
 }
 
-func RemoteBlockRange(socket *remote.Socket, networkId string, address string, from uint64, to uint64) (uint64, []Transaction, []Log, error) {
+func RemoteBlockRange(socket *remote.Socket, networkId string, address string, from uint64, to uint64) (uint64, []*Transaction, []*Log, error) {
 	request := message.Request{
 		Command: "block_get_range",
 		Param: map[string]interface{}{
@@ -55,22 +55,22 @@ func RemoteBlockRange(socket *remote.Socket, networkId string, address string, f
 		return 0, nil, nil, err
 	}
 
-	transactions := make([]Transaction, len(raw_transactions))
+	transactions := make([]*Transaction, len(raw_transactions))
 	for i, raw := range raw_transactions {
 		tx, err := ParseTransaction(raw)
 		if err != nil {
 			return 0, nil, nil, err
 		}
-		transactions[i] = *tx
+		transactions[i] = tx
 	}
 
-	logs := make([]Log, len(raw_logs))
+	logs := make([]*Log, len(raw_logs))
 	for i, raw := range raw_logs {
 		l, err := ParseLog(raw)
 		if err != nil {
 			return 0, nil, nil, err
 		}
-		logs[i] = *l
+		logs[i] = l
 	}
 
 	return timestamp, transactions, logs, nil
