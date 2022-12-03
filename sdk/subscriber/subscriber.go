@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blocklords/gosds/categorizer"
+	"github.com/blocklords/gosds/generic_type"
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/static"
@@ -57,7 +58,7 @@ func (subscriber *Subscriber) start_subscriber() error {
 // if there is an error, it will return them either in the Heartbeat channel
 func (s *Subscriber) Start() error {
 	s.smartcontractKeys = make([]*static.SmartcontractKey, 0)
-	err := s.loadSmartcontracts()
+	err := s.load_smartcontracts()
 	if err != nil {
 		return err
 	}
@@ -66,22 +67,14 @@ func (s *Subscriber) Start() error {
 		return err
 	}
 
-	port, err := s.getSinkPort()
-	if err != nil {
-		s.broadcastSocket.Close()
-		return fmt.Errorf("failed to create a port for Snapshots")
-	}
-	// run the think that waits for the snapshots
-	// then it will start to receive messages from subscriber
-	go s.runSink(port, len(s.smartcontractKeys))
 
 	// now create a broadcaster channel to send back to the developer the messages
 	s.BroadcastChan = make(chan message.Broadcast)
 
-	// finally take the snapshots
-	for i := range s.smartcontractKeys {
-		go s.snapshot(i, port)
-	}
+
+	s.snapshot()
+
+	go s.loop()
 
 	return nil
 }
@@ -95,8 +88,7 @@ func (s *Subscriber) getSinkPort() (uint, error) {
 	return port + 1, nil
 }
 
-func (s *Subscriber) snapshot(i int, port uint) {
-	key := s.smartcontractKeys[i]
+func (s *Subscriber) snapshot() {
 	limit := uint64(500)
 	page := uint64(1)
 	blockTimestampFrom := s.db.GetBlockTimestamp(key)
@@ -106,7 +98,7 @@ func (s *Subscriber) snapshot(i int, port uint) {
 		request := message.Request{
 			Command: "snapshot_get",
 			Param: map[string]interface{}{
-				"smartcontract_key":    key,
+				"smartcontract_key":    generic_type.ToStringList(s.smartcontractKeys),
 				"block_timestamp_from": blockTimestampFrom,
 				"block_timestamp_to":   blockTimestampTo,
 				"page":                 page,
@@ -193,13 +185,11 @@ func (s *Subscriber) runSink(port uint, smartcontractAmount int) {
 		}
 	}
 
-	go s.loop()
 }
 
-// The algorithm
 // Get the list of the smartcontracts by smartcontract filter from SDS Categorizer via SDS Gateway
 // Then cache them out and list in the Subscriber data structure
-func (s *Subscriber) loadSmartcontracts() error {
+func (s *Subscriber) load_smartcontracts() error {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
 
