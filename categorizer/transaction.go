@@ -87,7 +87,7 @@ func ParseTransaction(blob map[string]interface{}) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	args, err := message.GetMap(blob, "args")
+	args, err := message.GetMap(blob, "arguments")
 	if err != nil {
 		return nil, err
 	}
