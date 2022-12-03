@@ -2,6 +2,7 @@ package message
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 // The SDS Service will accepts the Request message.
@@ -23,6 +24,7 @@ func (reply *Request) ToBytes() []byte {
 	interfaces := reply.ToJSON()
 	byt, err := json.Marshal(interfaces)
 	if err != nil {
+		fmt.Println("error while converting json into bytes", err)
 		return []byte{}
 	}
 
