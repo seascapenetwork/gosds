@@ -10,65 +10,29 @@ import (
 )
 
 type Transaction struct {
-	networkId      string
-	blockNumber    int
-	blockTimestamp int
-	txid           string // txId column
-	txFrom         string
-	txTo           string
-	txIndex        uint
-	data           string  // text data type
-	value          float64 // value attached with transaction
-}
-
-func (b *Transaction) NetworkID() string {
-	return b.networkId
-}
-
-func (b *Transaction) BlockNumber() int {
-	return b.blockNumber
-}
-
-func (b *Transaction) TxId() string {
-	return b.txid
-}
-
-func (b *Transaction) TxFrom() string {
-	return b.txFrom
-}
-
-func (b *Transaction) TxTo() string {
-	return b.txTo
-}
-
-func (b *Transaction) TxIndex() uint {
-	return b.txIndex
-}
-
-func (b *Transaction) Data() string {
-	return b.data
-}
-
-func (b *Transaction) Value() float64 {
-	return b.value
-}
-
-func (b *Transaction) Timestamp() int {
-	return b.blockTimestamp
+	NetworkId      string
+	BlockNumber    uint64
+	BlockTimestamp uint64
+	Txid           string // txId column
+	TxFrom         string
+	TxTo           string
+	TxIndex        uint
+	Data           string  // text Data type
+	Value          float64 // Value attached with transaction
 }
 
 // JSON representation of the spaghetti.Transaction
 func (b *Transaction) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"network_id":      b.networkId,
-		"block_number":    b.blockNumber,
-		"block_timestamp": b.blockTimestamp,
-		"txid":            b.txid,
-		"tx_from":         b.txFrom,
-		"tx_to":           b.txTo,
-		"tx_index":        b.txIndex,
-		"tx_data":         b.data,
-		"tx_value":        b.value,
+		"network_id":      b.NetworkId,
+		"block_number":    b.BlockNumber,
+		"block_timestamp": b.BlockTimestamp,
+		"Txid":            b.Txid,
+		"tx_from":         b.TxFrom,
+		"tx_to":           b.TxTo,
+		"tx_index":        b.TxIndex,
+		"tx_Data":         b.Data,
+		"tx_Value":        b.Value,
 	}
 }
 
@@ -97,7 +61,7 @@ func ParseTransaction(parameters map[string]interface{}) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	txid, err := message.GetString(parameters, "txid")
+	Txid, err := message.GetString(parameters, "Txid")
 	if err != nil {
 		return nil, err
 	}
@@ -113,25 +77,25 @@ func ParseTransaction(parameters map[string]interface{}) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	tx_data, err := message.GetString(parameters, "tx_data")
+	tx_Data, err := message.GetString(parameters, "tx_Data")
 	if err != nil {
 		return nil, err
 	}
-	value, err := message.GetFloat64(parameters, "tx_value")
+	Value, err := message.GetFloat64(parameters, "tx_Value")
 	if err != nil {
 		return nil, err
 	}
 
 	return &Transaction{
-		networkId:      network_id,
-		blockNumber:    int(block_number),
-		blockTimestamp: int(block_timestamp),
-		txid:           txid,
-		txIndex:        uint(tx_index),
-		txFrom:         tx_from,
-		txTo:           tx_to,
-		data:           tx_data,
-		value:          value,
+		NetworkId:      network_id,
+		BlockNumber:    block_number,
+		BlockTimestamp: block_timestamp,
+		Txid:           Txid,
+		TxIndex:        uint(tx_index),
+		TxFrom:         tx_from,
+		TxTo:           tx_to,
+		Data:           tx_Data,
+		Value:          Value,
 	}, nil
 }
 
@@ -154,15 +118,15 @@ func ParseTransactions(txs []interface{}) ([]*Transaction, error) {
 	return transactions, nil
 }
 
-// Sends the command to the remote SDS Spaghetti to get the smartcontract deploy metadata by
+// Sends the command to the remote SDS Spaghetti to get the smartcontract deploy metaData by
 // its transaction id
-func RemoteTransactionDeployed(socket *remote.Socket, network_id string, txid string) (string, string, uint64, uint64, error) {
+func RemoteTransactionDeployed(socket *remote.Socket, network_id string, Txid string) (string, string, uint64, uint64, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "transaction_deployed_get",
 		Param: map[string]interface{}{
 			"network_id": network_id,
-			"txid":       txid,
+			"Txid":       Txid,
 		},
 	}
 
