@@ -26,7 +26,7 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 // The function is intended to be called as a gouritine.
 //
 // When a new message arrives, the method will send to the channel.
-func (socket *Socket) Subscribe(channel chan message.Reply, time_out time.Duration) {
+func (socket *Socket) Subscribe(channel chan message.Reply, exit_channel chan int, time_out time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
 		channel <- message.Fail("failed to check the socket type. the socket error: " + err.Error())
@@ -38,25 +38,31 @@ func (socket *Socket) Subscribe(channel chan message.Reply, time_out time.Durati
 	}
 
 	timer := time.AfterFunc(time_out, func() {
+		exit_channel <- 0
 		channel <- message.Fail("timeout")
 	})
+	defer timer.Stop()
 
 	for {
-		msgRaw, err := socket.socket.RecvMessage(0)
+		select {
+		case <-exit_channel:
+		default:
+			msgRaw, err := socket.socket.RecvMessage(zmq.DONTWAIT)
 
-		timer.Reset(time_out)
 
-		if err != nil {
-			channel <- message.Fail(err.Error())
-			continue
+			if err != nil {
+				time.Sleep(time.Millisecond * 200)
+				continue
+			}
+			timer.Reset(time_out)
+
+			broadcast, err := message.ParseBroadcast(msgRaw)
+			if err != nil {
+				channel <- message.Fail("Error when parsing message: " + err.Error())
+				continue
+			}
+
+			channel <- broadcast.Reply()
 		}
-
-		broadcast, err := message.ParseBroadcast(msgRaw)
-		if err != nil {
-			channel <- message.Fail("Error when parsing message: " + err.Error())
-			continue
-		}
-
-		channel <- broadcast.Reply()
 	}
 }
