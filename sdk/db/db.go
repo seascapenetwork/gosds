@@ -65,16 +65,18 @@ func (kvm *KVM) KeyTopicString(key *static.SmartcontractKey) []byte {
 func (kvm *KVM) GetBlockTimestamp(key *static.SmartcontractKey) uint64 {
 	dbKey := kvm.KeyBlockTimestamp(key)
 
+	fmt.Println("the database key for the block timestamp", dbKey)
+
 	bytes, closer, err := kvm.db.Get(dbKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return 0
 	}
 
 	timestamp := binary.BigEndian.Uint64(bytes)
 
 	if err := closer.Close(); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return 0
 	}
 
@@ -88,14 +90,14 @@ func (kvm *KVM) GetTopicString(key *static.SmartcontractKey) string {
 
 	bytes, closer, err := kvm.db.Get(dbKey)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return ""
 	}
 
 	topicString := string(bytes)
 
 	if err := closer.Close(); err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return ""
 	}
 
