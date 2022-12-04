@@ -46,9 +46,10 @@ func (socket *Socket) Subscribe(channel chan message.Reply, exit_channel chan in
 	for {
 		select {
 		case <-exit_channel:
+			fmt.Println("exit signal was received")
+			return
 		default:
 			msgRaw, err := socket.socket.RecvMessage(zmq.DONTWAIT)
-
 
 			if err != nil {
 				time.Sleep(time.Millisecond * 200)
