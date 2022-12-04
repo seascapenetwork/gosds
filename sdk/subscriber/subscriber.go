@@ -259,17 +259,37 @@ func (s *Subscriber) loop() {
 		}
 
 		// we skip the duplicate messages that were fetched by the Snapshot
-		networkId := reply.Params["network_id"].(string)
-		address := reply.Params["address"].(string)
-		blockTimestamp := uint64(reply.Params["block_timestamp"].(float64))
+		networkId, err := message.GetString(reply.Params, "network_id")
+		if err != nil {
+			fmt.Println("failed to receive the 'network_id' from the SDS Gateway Broadcast Proxy")
+			fmt.Println("skip it. which we should not actually.")
+			continue
+		}
+		address, err := message.GetString(reply.Params, "address")
+		if err != nil {
+			fmt.Println("failed to receive the 'address' from the SDS Gateway Broadcast Proxy")
+			fmt.Println("skip it. which we should not actually.")
+			continue
+		}
+		block_timestamp, err := message.GetUint64(reply.Params, "block_timestamp")
+		if err != nil {
+			fmt.Println("failed to receive the network_id from the SDS Gateway Broadcast Proxy")
+			fmt.Println("skip it. which we should not actually.")
+			continue
+		}
 		key := static.CreateSmartcontractKey(networkId, address)
 		latestBlockNumber := s.db.GetBlockTimestamp(key)
 
-		if latestBlockNumber > blockTimestamp {
+		if latestBlockNumber > block_timestamp {
 			continue
 		}
 
-		s.db.SetBlockTimestamp(key, blockTimestamp)
+		err = s.db.SetBlockTimestamp(key, block_timestamp)
+		if err != nil {
+			fmt.Println("failed to cache the block timestamp")
+			fmt.Println("skip it. which we should not actually.")
+			continue
+		}
 		s.BroadcastChan <- message.NewBroadcast("", reply)
 	}
 }
