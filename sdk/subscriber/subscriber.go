@@ -16,7 +16,6 @@ import (
 
 type Subscriber struct {
 	Address           string // Account address granted for reading
-	timer             *time.Timer
 	socket            *remote.Socket
 	db                *db.KVM                    // it also keeps the topic filter
 	smartcontractKeys []*static.SmartcontractKey // list of smartcontract keys
@@ -225,13 +224,6 @@ func (s *Subscriber) load_smartcontracts() error {
 
 // todo, change the heartbeat logic, expect to receive messages from the SDS Gateway
 func (s *Subscriber) loop() {
-	s.timer = time.AfterFunc(time.Second*time.Duration(10), func() {
-		s.BroadcastChan <- message.NewBroadcast("", message.Reply{Status: "fail", Message: "Server is not responding"})
-	})
-
-	// todo
-	// use remote/Subscribe
-	// change heartbeat, upon expiration of the heartbeat start over.
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
 
