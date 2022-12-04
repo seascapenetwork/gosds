@@ -227,7 +227,7 @@ func (s *Subscriber) loop() {
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
 
-	time_out := time.Duration(300)
+	time_out := time.Duration(time.Second * 30)
 
 	go s.broadcastSocket.Subscribe(receive_channel, exit_channel, time_out)
 
