@@ -289,14 +289,61 @@ func (s *Subscriber) loop() {
 		}
 		block_timestamp, err := message.GetUint64(reply.Params, "block_timestamp")
 		if err != nil {
-			fmt.Println("failed to receive the network_id from the SDS Gateway Broadcast Proxy")
+			fmt.Println("failed to receive the 'block_timestamp' from the SDS Gateway Broadcast Proxy")
 			fmt.Println("skip it. which we should not actually.")
 			continue
 		}
 		key := static.CreateSmartcontractKey(networkId, address)
-		latestBlockNumber := s.db.GetBlockTimestamp(key)
 
-		if latestBlockNumber > block_timestamp {
+		// we skip the duplicate messages that were fetched by the Snapshot
+		if s.db.GetBlockTimestamp(key) > block_timestamp {
+			continue
+		}
+
+		// receive the transactions and logs of the smartcontract
+		raw_transactions, err := message.GetMapList(reply.Params, "transactions")
+		if err != nil {
+			fmt.Println("failed to receive the 'transactions' from the SDS Gateway Broadcast Proxy")
+			fmt.Println("skip it. which we should not actually.")
+			continue
+		}
+		raw_logs, err := message.GetMapList(reply.Params, "logs")
+		if err != nil {
+			fmt.Println("failed to receive the 'logs' from the SDS Gateway Broadcast Proxy")
+			fmt.Println("skip it. which we should not actually.")
+			continue
+		}
+
+		success := true
+
+		transactions := make([]*categorizer.Transaction, len(raw_transactions))
+		for i, raw := range raw_transactions {
+			transaction, err := categorizer.ParseTransaction(raw)
+			if err != nil {
+				fmt.Println("failed to parse the 'transactions' from the SDS Gateway Broadcast Proxy")
+				fmt.Println("skip it. which we should not actually.")
+				success = false
+				break
+			}
+
+			transactions[i] = transaction
+		}
+		if !success {
+			continue
+		}
+		logs := make([]*categorizer.Log, len(raw_logs))
+		for i, raw := range raw_logs {
+			log, err := categorizer.ParseLog(raw)
+			if err != nil {
+				fmt.Println("failed to parse the 'logs' from the SDS Gateway Broadcast Proxy")
+				fmt.Println("skip it. which we should not actually.")
+				success = false
+				break
+			}
+
+			logs[i] = log
+		}
+		if !success {
 			continue
 		}
 
@@ -306,6 +353,22 @@ func (s *Subscriber) loop() {
 			fmt.Println("skip it. which we should not actually.")
 			continue
 		}
-		s.BroadcastChan <- message.NewBroadcast("", reply)
+
+		topic_string := s.db.GetTopicString(key)
+		data := map[string]interface{}{
+			"topic_string":    topic_string,
+			"block_timestamp": block_timestamp,
+			"transactions":    transactions,
+			"logs":            logs,
+		}
+		return_reply := message.Reply{
+			Status:  "OK",
+			Message: "",
+			Params: map[string]interface{}{
+				"data": data,
+			},
+		}
+
+		s.BroadcastChan <- message.NewBroadcast("OK", return_reply)
 	}
 }
