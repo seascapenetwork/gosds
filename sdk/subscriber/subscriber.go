@@ -222,7 +222,23 @@ func (s *Subscriber) load_smartcontracts() error {
 	return nil
 }
 
-// todo, change the heartbeat logic, expect to receive messages from the SDS Gateway
+// Calls the gosds/remote.Subscriber.Subscribe(),
+// Then sends the message to the user.
+//
+// Returns gosds/message.Reply as a failure or a success.
+//
+// If the messages are received successfully from the blockchain, then
+// gosds/message.Reply.Params will contain the following parameter:
+//
+//			Reply.Params: {
+//	 		"data": [ {
+//					"topic_string": gosds/topic.Topic.ToString(),		// the smartcontract topic string
+//					"block_timestamp": uint64,							// the latest block timestmap
+//		         	"transactions": []gosds/categorizer.Transaction,	// transactions
+//		         	"logs": []gosds/categorizer.Log,					// smartcontract events
+//					}
+//				]
+//			}
 func (s *Subscriber) loop() {
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
@@ -258,7 +274,7 @@ func (s *Subscriber) loop() {
 			continue
 		}
 
-		// we skip the duplicate messages that were fetched by the Snapshot
+		// validate the parameters
 		networkId, err := message.GetString(reply.Params, "network_id")
 		if err != nil {
 			fmt.Println("failed to receive the 'network_id' from the SDS Gateway Broadcast Proxy")
