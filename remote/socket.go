@@ -45,10 +45,6 @@ func (socket *Socket) Close() error {
 	} else {
 		url = socket.remoteService.Url()
 	}
-	last_endpoint, err := socket.socket.GetLastEndpoint()
-	if err != nil {
-		return err
-	}
 	err = socket.socket.Disconnect("tcp://" + url)
 	if err != nil {
 		return err
