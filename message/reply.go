@@ -3,7 +3,6 @@ package message
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 )
 
 type Reply struct {
@@ -56,14 +55,14 @@ func ParseReply(msgs []string) (Reply, error) {
 }
 
 func ParseJsonReply(dat map[string]interface{}) (Reply, error) {
-	fmt.Println("!!!kjhnjkhkjlhklj", dat)
+	//fmt.Println("!!!kjhnjkhkjlhklj", dat)
 	if dat["status"] == nil {
 		return Reply{}, fmt.Errorf("no 'status' parameter")
 	}
 
 	replyMessage := ""
 	if dat["message"] != nil {
-		fmt.Println("[", time.Now().Local(), "] got message: ", dat)
+		//fmt.Println("[", time.Now().Local(), "] got message: ", dat)
 		jsonError, _ := json.Marshal(dat["message"])
 		replyMessage = string(jsonError)
 	}

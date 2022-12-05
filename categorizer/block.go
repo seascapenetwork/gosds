@@ -103,7 +103,7 @@ func (b *Block) RemoteSet(socket *remote.Socket) error {
 func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Block, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "get",
+		Command: "smartcontract_get",
 		Param: map[string]interface{}{
 			"networkId": networkId,
 			"address":   address,
@@ -121,7 +121,7 @@ func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Bloc
 func RemoteBlocks(socket *remote.Socket) ([]*Block, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "get_all",
+		Command: "smartcontract_get_all",
 		Param:   map[string]interface{}{},
 	}
 
