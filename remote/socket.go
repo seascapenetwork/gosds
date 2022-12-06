@@ -42,6 +42,7 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 	poller := zmq.NewPoller()
 	poller.Add(socket.socket, zmq.POLLIN)
 
+	fmt.Println("!!! sending request: ", request)
 	//  We send a request, then we work to get a reply
 	if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
 		return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
@@ -67,7 +68,7 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 				return nil, fmt.Errorf("failed to receive the command '%s' message from '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
 			}
 
-			fmt.Println(r)
+			fmt.Println("!!!get response: ", r)
 
 			reply, err := message.ParseReply(r)
 			if err != nil {
