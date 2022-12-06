@@ -2,6 +2,7 @@
 package subscriber
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -44,10 +45,10 @@ func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*S
 
 // Connect the client to the SDS Publisher broadcast.
 // Then start to queue the incoming data from the broadcaster.
-// The queued messages will be read and cached by the Subscriber.loop() after getting the snapshot.
+// The queued messages will be read and cached by the Subscriber.read_from_publisher() after getting the snapshot.
 func (subscriber *Subscriber) connect_to_publisher() error {
 	// Run the Subscriber that is connected to the Broadcaster
-	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(subscriber.socket.RemoteEnv())
+	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(env.Publisher())
 
 	// Subscribing to the events, but we will not call the sub.ReceiveMessage
 	// until we will not get the snapshot of the missing data.
@@ -79,7 +80,7 @@ func (s *Subscriber) Start() error {
 	s.BroadcastChan = make(chan message.Broadcast)
 
 
-	go s.snapshot()
+	go s.get_data()
 	return nil
 }
 
@@ -97,46 +98,46 @@ func (s *Subscriber) recent_block_timestamp() uint64 {
 	return recent_block_timestamp
 }
 
-// Snapshot gets the data for the old data.
-func (s *Subscriber) get_snapshot() {
+func (s *Subscriber) get_snapshot() error {
 	limit := uint64(500)
 	page := uint64(1)
-	blockTimestampFrom := s.recent_block_timestamp()
-	blockTimestampTo := uint64(0)
+	block_timestamp_from := s.recent_block_timestamp()
+	// if block_timestamp_to is 0, then get snapshot till the most recent block update.
+	block_timestamp_to := uint64(0)
 
 	for {
 		request := message.Request{
 			Command: "snapshot_get",
 			Param: map[string]interface{}{
 				"smartcontract_keys":   generic_type.ToStringList(s.smartcontractKeys),
-				"block_timestamp_from": blockTimestampFrom,
-				"block_timestamp_to":   blockTimestampTo,
+				"block_timestamp_from": block_timestamp_from,
+				"block_timestamp_to":   block_timestamp_to,
 				"page":                 page,
 				"limit":                limit,
 			},
 		}
 
-		replyParams, err := s.socket.RequestRemoteService(&request)
+		snapshot_parameters, err := s.socket.RequestRemoteService(&request)
 		if err != nil {
-			panic(err)
+			return err
 		}
 
-		raw_transactions, err := message.GetMapList(replyParams, "transactions")
+		raw_transactions, err := message.GetMapList(snapshot_parameters, "transactions")
 		if err != nil {
-			panic(err)
+			return err
 		}
-		raw_logs, err := message.GetMapList(replyParams, "logs")
+		raw_logs, err := message.GetMapList(snapshot_parameters, "logs")
 		if err != nil {
-			panic(err)
+			return err
 		}
-		timestamp, err := message.GetUint64(replyParams, "block_timestamp")
+		timestamp, err := message.GetUint64(snapshot_parameters, "block_timestamp")
 		if err != nil {
-			panic(err)
+			return err
 		}
 
 		// we fetch until all is not received
 		if len(raw_transactions) == 0 {
-			break
+			return nil
 		}
 
 		transactions := make([]*categorizer.Transaction, len(raw_transactions))
@@ -147,7 +148,7 @@ func (s *Subscriber) get_snapshot() {
 		for i, rawTx := range raw_transactions {
 			tx, err := categorizer.ParseTransaction(rawTx)
 			if err != nil {
-				panic("failed to parse the transaction. the error: " + err.Error())
+				return errors.New("failed to parse the transaction. the error: " + err.Error())
 			} else {
 				transactions[i] = tx
 			}
@@ -157,14 +158,14 @@ func (s *Subscriber) get_snapshot() {
 			if tx.BlockTimestamp > cached_block_timestamp {
 				err = s.db.SetBlockTimestamp(key, tx.BlockTimestamp)
 				if err != nil {
-					panic(err)
+					return err
 				}
 			}
 		}
-		for i, rawLog := range raw_logs {
-			log, err := categorizer.ParseLog(rawLog)
+		for i, raw_log := range raw_logs {
+			log, err := categorizer.ParseLog(raw_log)
 			if err != nil {
-				panic("failed to parse the log. the error: " + err.Error())
+				return errors.New("failed to parse the log. the error: " + err.Error())
 			}
 			logs[i] = log
 		}
@@ -180,14 +181,23 @@ func (s *Subscriber) get_snapshot() {
 		}
 		s.BroadcastChan <- message.NewBroadcast("", reply)
 
-		if blockTimestampTo == 0 {
-			blockTimestampTo = timestamp
+		if block_timestamp_to == 0 {
+			block_timestamp_to = timestamp
 		}
 		page++
 
 	}
+}
 
-	s.loop()
+// calls the snapshot then incoming data in real-time from SDS Publisher
+func (s *Subscriber) get_data() {
+	err := s.get_snapshot()
+	if err != nil {
+		s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
+		return
+	}
+
+	s.read_from_publisher()
 }
 
 // Get the list of the smartcontracts by smartcontract filter from SDS Categorizer via SDS Gateway
@@ -248,7 +258,7 @@ func (s *Subscriber) load_smartcontracts() error {
 //					}
 //				]
 //			}
-func (s *Subscriber) loop() {
+func (s *Subscriber) read_from_publisher() {
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
 
