@@ -78,14 +78,14 @@ func (s *Subscriber) heartbeat(ch chan message.Reply) {
 			break
 		}
 
-		stateTimestamp := int(heartbeatReply.Params["stateTimestamp"].(float64))
-		if stateTimestamp != s.StateTimestamp {
-			exception := message.Reply{
-				Status:  "NOTOK",
-				Message: "Timestamp is not same as Server, you should re-connect",
-			}
-			ch <- exception
-		}
+		//stateTimestamp := int(heartbeatReply.Params["stateTimestamp"].(float64))
+		//if stateTimestamp != s.StateTimestamp {
+		//	exception := message.Reply{
+		//		Status:  "NOTOK",
+		//		Message: "Timestamp is not same as Server, you should re-connect",
+		//	}
+		//	ch <- exception
+		//}
 
 		//heartbeatReply := Heartbeat(s)
 		//if !heartbeatReply.IsOK() {
