@@ -288,6 +288,12 @@ func (s *Subscriber) read_from_publisher() {
 					break
 				}
 
+				// get the data that appeared on the SDS Side during the timeout.
+				if err := s.get_snapshot(); err != nil {
+					s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
+					break
+				}
+
 				go s.broadcastSocket.Subscribe(receive_channel, exit_channel, time_out)
 			}
 			continue
