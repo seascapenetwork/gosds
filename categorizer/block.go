@@ -114,7 +114,7 @@ func RemoteBlock(socket *remote.Socket, networkId string, address string) (*Bloc
 		return nil, err
 	}
 
-	b := ParseJSON(params["block"].(map[string]interface{}))
+	b := ParseJSON(params["smartcontract"].(map[string]interface{}))
 	return b, nil
 }
 
