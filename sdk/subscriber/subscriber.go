@@ -325,6 +325,9 @@ func (s *Subscriber) read_from_publisher() {
 			continue
 		}
 
+		// Return the data to the SDK client.
+		// The SDK returns already formatted data instead of the generic interfaces.
+
 		// receive the transactions and logs of the smartcontract
 		raw_transactions, err := message.GetMapList(reply.Params, "transactions")
 		if err != nil {
@@ -372,6 +375,7 @@ func (s *Subscriber) read_from_publisher() {
 			continue
 		}
 
+		// Update the timestamp in the cache only if the received data is valid.
 		err = s.db.SetBlockTimestamp(key, block_timestamp)
 		if err != nil {
 			fmt.Println("failed to cache the block timestamp")
@@ -379,18 +383,16 @@ func (s *Subscriber) read_from_publisher() {
 			continue
 		}
 
-		topic_string := s.db.GetTopicString(key)
-		data := map[string]interface{}{
-			"topic_string":    topic_string,
-			"block_timestamp": block_timestamp,
-			"transactions":    transactions,
-			"logs":            logs,
-		}
 		return_reply := message.Reply{
 			Status:  "OK",
 			Message: "",
 			Params: map[string]interface{}{
-				"data": data,
+				"data": map[string]interface{}{
+					"topic_string":    s.db.GetTopicString(key),
+					"block_timestamp": block_timestamp,
+					"transactions":    transactions,
+					"logs":            logs,
+				},
 			},
 		}
 
