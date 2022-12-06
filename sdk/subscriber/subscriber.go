@@ -179,7 +179,7 @@ func (s *Subscriber) get_snapshot() error {
 				"block_timestamp": timestamp,
 			},
 		}
-		s.BroadcastChan <- message.NewBroadcast("", reply)
+		s.BroadcastChan <- message.NewBroadcast("OK", reply)
 
 		if block_timestamp_to == 0 {
 			block_timestamp_to = timestamp
@@ -241,6 +241,34 @@ func (s *Subscriber) load_smartcontracts() error {
 	return nil
 }
 
+// In case of the failure to read the data from the Publisher
+// Or there might be a delay.
+// What we do is to reconnect the client to the SDS.
+// Get the snapshot of the missing data, then reconnect the subscriber to read data from SDS Publisher.
+func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel chan int, time_out time.Duration) error {
+	err := s.broadcastSocket.Close()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("now restarting the socket")
+
+	if err := s.connect_to_publisher(); err != nil {
+		fmt.Println("failed to start the subscriber")
+		s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to restart the subscriber: "+err.Error()))
+		return err
+	}
+
+	// get the data that appeared on the SDS Side during the timeout.
+	if err := s.get_snapshot(); err != nil {
+		s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
+		return err
+	}
+
+	go s.broadcastSocket.Subscribe(receive_channel, exit_channel, time_out)
+
+	return nil
+}
+
 // Calls the gosds/remote.Subscriber.Subscribe(),
 // Then sends the message to the user.
 //
@@ -277,21 +305,9 @@ func (s *Subscriber) read_from_publisher() {
 				// we might need to restart ourselves later.
 				break
 			} else {
-				err := s.broadcastSocket.Close()
+				err := s.reconnect(receive_channel, exit_channel, time_out)
 				if err != nil {
 					panic(err)
-				}
-
-				if err := s.connect_to_publisher(); err != nil {
-					fmt.Println("failed to start the subscriber")
-					s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to restart the subscriber: "+err.Error()))
-					break
-				}
-
-				// get the data that appeared on the SDS Side during the timeout.
-				if err := s.get_snapshot(); err != nil {
-					s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
-					break
 				}
 
 				go s.broadcastSocket.Subscribe(receive_channel, exit_channel, time_out)
@@ -302,26 +318,29 @@ func (s *Subscriber) read_from_publisher() {
 		// validate the parameters
 		networkId, err := message.GetString(reply.Params, "network_id")
 		if err != nil {
-			fmt.Println("failed to receive the 'network_id' from the SDS Gateway Broadcast Proxy")
-			fmt.Println("skip it. which we should not actually.")
+			fmt.Println("the sds publisher invalid 'network_id'. reconnect and try again until publisher won't fix it. error " + err.Error())
+			err := s.reconnect(receive_channel, exit_channel, time_out)
+			if err != nil {
+				panic(err)
+			}
 			continue
 		}
 		address, err := message.GetString(reply.Params, "address")
 		if err != nil {
-			fmt.Println("failed to receive the 'address' from the SDS Gateway Broadcast Proxy")
-			fmt.Println("skip it. which we should not actually.")
+			fmt.Println("the sds publisher invalid 'address'. reconnect and try again until publisher won't fix it. error " + err.Error())
+			err := s.reconnect(receive_channel, exit_channel, time_out)
+			if err != nil {
+				panic(err)
+			}
 			continue
 		}
 		block_timestamp, err := message.GetUint64(reply.Params, "block_timestamp")
 		if err != nil {
-			fmt.Println("failed to receive the 'block_timestamp' from the SDS Gateway Broadcast Proxy")
-			fmt.Println("skip it. which we should not actually.")
-			continue
-		}
-		key := static.CreateSmartcontractKey(networkId, address)
-
-		// we skip the duplicate messages that were fetched by the Snapshot
-		if s.db.GetBlockTimestamp(key) > block_timestamp {
+			fmt.Println("the sds publisher invalid 'block_timestamp'. reconnect and try again until publisher won't fix it. error " + err.Error())
+			err := s.reconnect(receive_channel, exit_channel, time_out)
+			if err != nil {
+				panic(err)
+			}
 			continue
 		}
 
@@ -331,14 +350,27 @@ func (s *Subscriber) read_from_publisher() {
 		// receive the transactions and logs of the smartcontract
 		raw_transactions, err := message.GetMapList(reply.Params, "transactions")
 		if err != nil {
-			fmt.Println("failed to receive the 'transactions' from the SDS Gateway Broadcast Proxy")
-			fmt.Println("skip it. which we should not actually.")
+			fmt.Println("the sds publisher invalid 'transactions'. reconnect and try again until publisher won't fix it. error " + err.Error())
+			err := s.reconnect(receive_channel, exit_channel, time_out)
+			if err != nil {
+				panic(err)
+			}
 			continue
 		}
 		raw_logs, err := message.GetMapList(reply.Params, "logs")
 		if err != nil {
-			fmt.Println("failed to receive the 'logs' from the SDS Gateway Broadcast Proxy")
-			fmt.Println("skip it. which we should not actually.")
+			fmt.Println("the sds publisher invalid 'logs'. reconnect and try again until publisher won't fix it. error " + err.Error())
+			err := s.reconnect(receive_channel, exit_channel, time_out)
+			if err != nil {
+				panic(err)
+			}
+			continue
+		}
+
+		key := static.CreateSmartcontractKey(networkId, address)
+
+		// we skip the duplicate messages that were fetched by the Snapshot
+		if s.db.GetBlockTimestamp(key) > block_timestamp {
 			continue
 		}
 
@@ -348,8 +380,11 @@ func (s *Subscriber) read_from_publisher() {
 		for i, raw := range raw_transactions {
 			transaction, err := categorizer.ParseTransaction(raw)
 			if err != nil {
-				fmt.Println("failed to parse the 'transactions' from the SDS Gateway Broadcast Proxy")
-				fmt.Println("skip it. which we should not actually.")
+				fmt.Println("the sds publisher invalid 'transactions'. failed to parse it. reconnect and try again until publisher won't fix it. error " + err.Error())
+				err := s.reconnect(receive_channel, exit_channel, time_out)
+				if err != nil {
+					panic(err)
+				}
 				success = false
 				break
 			}
@@ -363,8 +398,11 @@ func (s *Subscriber) read_from_publisher() {
 		for i, raw := range raw_logs {
 			log, err := categorizer.ParseLog(raw)
 			if err != nil {
-				fmt.Println("failed to parse the 'logs' from the SDS Gateway Broadcast Proxy")
-				fmt.Println("skip it. which we should not actually.")
+				fmt.Println("the sds publisher invalid 'logs'. failed to parse it. reconnect and try again until publisher won't fix it. error " + err.Error())
+				err := s.reconnect(receive_channel, exit_channel, time_out)
+				if err != nil {
+					panic(err)
+				}
 				success = false
 				break
 			}
@@ -378,8 +416,11 @@ func (s *Subscriber) read_from_publisher() {
 		// Update the timestamp in the cache only if the received data is valid.
 		err = s.db.SetBlockTimestamp(key, block_timestamp)
 		if err != nil {
-			fmt.Println("failed to cache the block timestamp")
-			fmt.Println("skip it. which we should not actually.")
+			fmt.Println("the sds publisher invalid 'logs'. reconnect and try again until publisher won't fix it. error " + err.Error())
+			err := s.reconnect(receive_channel, exit_channel, time_out)
+			if err != nil {
+				panic(err)
+			}
 			continue
 		}
 
