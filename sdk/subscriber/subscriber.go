@@ -253,14 +253,17 @@ func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel 
 	fmt.Println("now restarting the socket")
 
 	if err := s.connect_to_publisher(); err != nil {
-		fmt.Println("failed to start the subscriber")
-		s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to restart the subscriber: "+err.Error()))
+		s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to connect to the publisher: "+err.Error()))
 		return err
 	}
 
 	// get the data that appeared on the SDS Side during the timeout.
 	if err := s.get_snapshot(); err != nil {
 		s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
+		close_err := s.broadcastSocket.Close()
+		if close_err != nil {
+			panic(close_err)
+		}
 		return err
 	}
 
@@ -289,7 +292,6 @@ func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel 
 func (s *Subscriber) read_from_publisher() {
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
-
 	time_out := time.Duration(time.Second * 30)
 
 	go s.broadcastSocket.Subscribe(receive_channel, exit_channel, time_out)
