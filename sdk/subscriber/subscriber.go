@@ -98,6 +98,7 @@ func (s *Subscriber) recent_block_timestamp() uint64 {
 	return recent_block_timestamp
 }
 
+// Get the snapshot since the latest cached till the most recent updated time.
 func (s *Subscriber) get_snapshot() error {
 	limit := uint64(500)
 	page := uint64(1)
