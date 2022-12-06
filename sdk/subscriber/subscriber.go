@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/blocklords/gosds/categorizer"
+	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/generic_type"
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/remote"
@@ -24,17 +25,27 @@ type Subscriber struct {
 	broadcastSocket *remote.Socket
 }
 
+// Create a new subscriber for a given user and his topic filter.
 func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*Subscriber, error) {
 	subscriber := Subscriber{
-		Address: address,
-		socket:  gatewaySocket,
-		db:      db,
+		Address:           address,
+		socket:            gatewaySocket,
+		db:                db,
+		smartcontractKeys: make([]*static.SmartcontractKey, 0),
+	}
+
+	err := subscriber.load_smartcontracts()
+	if err != nil {
+		return nil, err
 	}
 
 	return &subscriber, nil
 }
 
-func (subscriber *Subscriber) start_subscriber() error {
+// Connect the client to the SDS Publisher broadcast.
+// Then start to queue the incoming data from the broadcaster.
+// The queued messages will be read and cached by the Subscriber.loop() after getting the snapshot.
+func (subscriber *Subscriber) connect_to_publisher() error {
 	// Run the Subscriber that is connected to the Broadcaster
 	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(subscriber.socket.RemoteEnv())
 
@@ -52,20 +63,17 @@ func (subscriber *Subscriber) start_subscriber() error {
 	return nil
 }
 
-// the main function that starts the broadcasting.
-// It first calls the smartcontract_filters. and cacshes them out.
-// if there is an error, it will return them either in the Heartbeat channel
+// The Start() method creates a channel for sending the data to the client.
+// Then it connects to the SDS Gateway to get the snapshots.
+// Finally, it will receive the messages from SDS Publisher.
 func (s *Subscriber) Start() error {
-	s.smartcontractKeys = make([]*static.SmartcontractKey, 0)
-	err := s.load_smartcontracts()
-	if err != nil {
+	fmt.Println("Starting the subscription!")
+
+	if err := s.connect_to_publisher(); err != nil {
 		return err
 	}
 
-	if err := s.start_subscriber(); err != nil {
-		return err
-	}
-
+	fmt.Println("Subscriber connected and queueing the messages while snapshot won't be ready")
 
 	// now create a broadcaster channel to send back to the developer the messages
 	s.BroadcastChan = make(chan message.Broadcast)
@@ -89,7 +97,8 @@ func (s *Subscriber) recent_block_timestamp() uint64 {
 	return recent_block_timestamp
 }
 
-func (s *Subscriber) snapshot() {
+// Snapshot gets the data for the old data.
+func (s *Subscriber) get_snapshot() {
 	limit := uint64(500)
 	page := uint64(1)
 	blockTimestampFrom := s.recent_block_timestamp()
@@ -263,7 +272,7 @@ func (s *Subscriber) loop() {
 					panic(err)
 				}
 
-				if err := s.start_subscriber(); err != nil {
+				if err := s.connect_to_publisher(); err != nil {
 					fmt.Println("failed to start the subscriber")
 					s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to restart the subscriber: "+err.Error()))
 					break
