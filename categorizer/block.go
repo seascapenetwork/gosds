@@ -69,8 +69,8 @@ func ParseJSON(blob map[string]interface{}) *Block {
 		blob["network_id"].(string),
 		blob["address"].(string),
 		blob["abi_hash"].(string),
-		int(blob["synced_block_number"].(float64)),
-		int(blob["timestamp"].(float64)),
+		int(blob["categorized_block_number"].(float64)),
+		int(blob["categorized_block_timestamp"].(float64)),
 	)
 	return &b
 }
