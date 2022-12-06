@@ -51,9 +51,15 @@ func GetStringList(parameters map[string]interface{}, name string) ([]string, er
 	if !exists {
 		return nil, errors.New("missing '" + name + "' parameter in the Request")
 	}
+
 	values, ok := raw.([]interface{})
 	if !ok {
-		return nil, errors.New("expected list type for '" + name + "' parameter")
+		ready_list, ok := raw.([]string)
+		if !ok {
+			return nil, errors.New("expected list type for '" + name + "' parameter")
+		} else {
+			return ready_list, nil
+		}
 	}
 
 	list := make([]string, len(values))
@@ -79,7 +85,12 @@ func GetMapList(parameters map[string]interface{}, name string) ([]map[string]in
 	}
 	values, ok := raw.([]interface{})
 	if !ok {
-		return nil, errors.New("expected list type for '" + name + "' parameter")
+		ready_list, ok := raw.([]map[string]interface{})
+		if !ok {
+			return nil, errors.New("expected list type for '" + name + "' parameter")
+		} else {
+			return ready_list, nil
+		}
 	}
 
 	list := make([]map[string]interface{}, len(values))
