@@ -38,6 +38,11 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env) {
 		msg_raw, err := socket.RecvMessage(0)
 		if err != nil {
 			println(fmt.Errorf("receiving: %w", err))
+			fail := message.Fail("invalid command " + err.Error())
+			reply := fail.ToString()
+			if _, err := socket.SendMessage(reply); err != nil {
+				println(fmt.Errorf(" reply: %w", err))
+			}
 			continue
 		}
 		request, err := message.ParseRequest(msg_raw)
