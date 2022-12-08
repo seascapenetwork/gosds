@@ -86,7 +86,12 @@ func NewReader(address string) (*reader.Reader, error) {
 		return nil, err
 	}
 
-	gatewaySocket := remote.TcpRequestSocketOrPanic(e)
+	developer_env, err := developer_env()
+	if err != nil {
+		return nil, err
+	}
+
+	gatewaySocket := remote.TcpRequestSocketOrPanic(e, developer_env)
 
 	return reader.NewReader(gatewaySocket, address), nil
 }
@@ -97,7 +102,12 @@ func NewWriter(address string) (*writer.Writer, error) {
 		return nil, err
 	}
 
-	gatewaySocket := remote.TcpRequestSocketOrPanic(e)
+	developer_env, err := developer_env()
+	if err != nil {
+		return nil, err
+	}
+
+	gatewaySocket := remote.TcpRequestSocketOrPanic(e, developer_env)
 
 	return writer.NewWriter(gatewaySocket, address), nil
 }
@@ -109,7 +119,12 @@ func NewSubscriber(address string, topicFilter *topic.TopicFilter) (*subscriber.
 		return nil, err
 	}
 
-	gatewaySocket := remote.TcpRequestSocketOrPanic(e)
+	developer_env, err := developer_env()
+	if err != nil {
+		return nil, err
+	}
+
+	gatewaySocket := remote.TcpRequestSocketOrPanic(e, developer_env)
 
 	db, err := db.OpenKVM(topicFilter)
 	if err != nil {
@@ -129,6 +144,15 @@ func gatewayEnv(broadcast bool) (*env.Env, error) {
 
 	if broadcast && !e.BroadcastExist() {
 		return nil, errors.New("missing 'GATEWAY_BROADCAST_HOST' and/or 'GATEWAY_BROADCAST_PORT' environment variables")
+	}
+
+	return e, nil
+}
+
+func developer_env() (*env.Env, error) {
+	e := env.Developer()
+	if len(e.SecretKey()) == 0 || len(e.PublicKey()) == 0 {
+		return nil, errors.New("missing 'DEVELOPER_SECRET_KEY' and/or 'DEVELOPER_PUBLIC_KEY' environment variables")
 	}
 
 	return e, nil
