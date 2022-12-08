@@ -48,8 +48,14 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, public_ke
 	zmq.AuthSetMetadataHandler(handler)
 
 	// Socket to talk to clients
-	socket, _ := zmq.NewSocket(zmq.REP)
-	socket.ServerAuthCurve(e.DomainName(), e.SecretKey())
+	socket, err := zmq.NewSocket(zmq.REP)
+	if err != nil {
+		panic(err)
+	}
+	err = socket.ServerAuthCurve(e.DomainName(), e.SecretKey())
+	if err != nil {
+		panic(err)
+	}
 	defer socket.Close()
 	defer zmq.AuthStop()
 	if err := socket.Bind("tcp://*:" + e.Port()); err != nil {
