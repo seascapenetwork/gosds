@@ -21,6 +21,8 @@ type Env struct {
 	broadcast_port string // Broadcasting port
 	host           string // request-reply host
 	port           string // request-reply port
+	public_key     string // The Curve key of the service
+	secret_key     string // The Curve secret key of the service
 }
 
 // Checks whether the envrionment variable exists or not
@@ -76,14 +78,55 @@ func Bundle() *Env { return Get("BUNDLE") }
 // Returns the envrionment variable for the SDS Log
 func Log() *Env { return Get("LOG") }
 
+func NewDeveloper(public_key string, secret_key string) *Env {
+	return &Env{
+		service:        "developer",
+		host:           "",
+		port:           "",
+		broadcast_host: "",
+		broadcast_port: "",
+		public_key:     public_key,
+		secret_key:     secret_key,
+	}
+}
+
+func Developer() *Env {
+	public_key := GetString("DEVELOPER_PUBLIC_KEY")
+	secret_key := GetString("DEVELOPER_SECRET_KEY")
+
+	return NewDeveloper(public_key, secret_key)
+}
+
 // for example env.Get("SPAGHETTI").
 func Get(service string) *Env {
 	host := GetString(service + "_HOST")
 	port := GetString(service + "_PORT")
 	broadcast_host := GetString(service + "_BROADCAST_HOST")
 	broadcast_port := GetString(service + "_BROADCAST_PORT")
+	public_key := GetString(service + "_PUBLIC_KEY")
+	secret_key := GetString(service + "_SECRET_KEY")
 
-	return &Env{service: service, host: host, port: port, broadcast_host: broadcast_host, broadcast_port: broadcast_port}
+	return &Env{
+		service:        service,
+		host:           host,
+		port:           port,
+		broadcast_host: broadcast_host,
+		broadcast_port: broadcast_port,
+		public_key:     public_key,
+		secret_key:     secret_key,
+	}
+}
+
+func (e *Env) SecretKey() string {
+	return e.secret_key
+}
+
+func (e *Env) PublicKey() string {
+	return e.public_key
+}
+
+func (e *Env) DomainName() string {
+	return e.service
 }
 
 // Returns the Service Name
