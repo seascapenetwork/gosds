@@ -18,14 +18,40 @@ import (
 type CommandHandlers map[string]interface{}
 
 // Creates a new Reply controller using ZeroMQ
-func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env) {
+// The requesters is the list of curve public keys that are allowed to connect to the socket.
+func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, public_keys []string) {
 	if !e.PortExist() {
 		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' port"))
 	}
 
+	zmq.AuthSetVerbose(true)
+	err := zmq.AuthStart()
+	if err != nil {
+		panic(err)
+	}
+
+	// allow income from any ip address
+	// for any domain name where this controller is running.
+	zmq.AuthAllow("*")
+	// only whitelisted users are allowed
+	zmq.AuthCurveAdd("*", public_keys...)
+
+	handler := func(version string, request_id string, domain string, address string, identity string, mechanism string, credentials ...string) (metadata map[string]string) {
+		metadata = map[string]string{
+			"request_id": request_id,
+			"Identity":   zmq.Z85encode(credentials[0]),
+			"address":    address,
+			"pub_key":    zmq.Z85encode(credentials[0]), // if mechanism is not curve, it will fail
+		}
+		return metadata
+	}
+	zmq.AuthSetMetadataHandler(handler)
+
 	// Socket to talk to clients
 	socket, _ := zmq.NewSocket(zmq.REP)
+	socket.ServerAuthCurve(e.ServiceName(), e.SecretKey())
 	defer socket.Close()
+	defer zmq.AuthStop()
 	if err := socket.Bind("tcp://*:" + e.Port()); err != nil {
 		println("error to bind socket for '"+e.ServiceName()+" - "+e.Url()+"' : ", err.Error())
 		panic(err)
