@@ -26,7 +26,7 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 // Subscribe to the SDS Broadcast.
 // The function is intended to be called as a gouritine.
 //
-// When a new message arrives, the method will send to the channel.
+// When a new message arrives, the method will send it to the channel.
 func (socket *Socket) Subscribe(channel chan message.Reply, exit_channel chan int, time_out time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
