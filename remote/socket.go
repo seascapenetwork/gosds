@@ -143,12 +143,17 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 
 // Create a new Socket on TCP protocol otherwise exit from the program
 // The socket is the wrapper over zmq.REQ
-func TcpRequestSocketOrPanic(e *env.Env) *Socket {
+func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
 	if !e.UrlExist() {
 		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port"))
 	}
 
 	sock, _ := zmq.NewSocket(zmq.REQ)
+	err := sock.ClientAuthCurve(e.PublicKey(), client.PublicKey(), client.SecretKey())
+	if err != nil {
+		panic(err)
+	}
+
 	if err := sock.Connect("tcp://" + e.Url()); err != nil {
 		panic(fmt.Errorf("error '"+e.ServiceName()+"' connect: %w", err))
 	}
