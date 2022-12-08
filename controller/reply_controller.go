@@ -49,7 +49,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, public_ke
 
 	// Socket to talk to clients
 	socket, _ := zmq.NewSocket(zmq.REP)
-	socket.ServerAuthCurve(e.ServiceName(), e.SecretKey())
+	socket.ServerAuthCurve(e.DomainName(), e.SecretKey())
 	defer socket.Close()
 	defer zmq.AuthStop()
 	if err := socket.Bind("tcp://*:" + e.Port()); err != nil {
