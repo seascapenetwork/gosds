@@ -16,13 +16,15 @@ import (
 
 // Environment variables for each SDS Service
 type Env struct {
-	service        string // Service name
-	broadcast_host string // Broadcasting host
-	broadcast_port string // Broadcasting port
-	host           string // request-reply host
-	port           string // request-reply port
-	public_key     string // The Curve key of the service
-	secret_key     string // The Curve secret key of the service
+	service              string // Service name
+	broadcast_host       string // Broadcasting host
+	broadcast_port       string // Broadcasting port
+	host                 string // request-reply host
+	port                 string // request-reply port
+	public_key           string // The Curve key of the service
+	secret_key           string // The Curve secret key of the service
+	broadcast_public_key string
+	broadcast_secret_key string
 }
 
 // Checks whether the envrionment variable exists or not
@@ -105,15 +107,19 @@ func Get(service string) *Env {
 	broadcast_port := GetString(service + "_BROADCAST_PORT")
 	public_key := GetString(service + "_PUBLIC_KEY")
 	secret_key := GetString(service + "_SECRET_KEY")
+	broadcast_public_key := GetString(service + "_BROADCAST_PUBLIC_KEY")
+	broadcast_secret_key := GetString(service + "_BROADCAST_SECRET_KEY")
 
 	return &Env{
-		service:        service,
-		host:           host,
-		port:           port,
-		broadcast_host: broadcast_host,
-		broadcast_port: broadcast_port,
-		public_key:     public_key,
-		secret_key:     secret_key,
+		service:              service,
+		host:                 host,
+		port:                 port,
+		broadcast_host:       broadcast_host,
+		broadcast_port:       broadcast_port,
+		public_key:           public_key,
+		secret_key:           secret_key,
+		broadcast_public_key: broadcast_public_key,
+		broadcast_secret_key: broadcast_secret_key,
 	}
 }
 
@@ -180,6 +186,10 @@ func (e *Env) BroadcastPort() string {
 	return e.broadcast_port
 }
 
+func (e *Env) BroadcastPortExists() bool {
+	return len(e.broadcast_port) > 0 && len(e.broadcast_public_key) > 0 && len(e.broadcast_secret_key) > 0
+}
+
 // Returns the broadcast port environment variable
 func (e *Env) BroadcastPortEnv() string {
 	return GetString(e.service + "_BROADCAST_PORT")
@@ -187,15 +197,15 @@ func (e *Env) BroadcastPortEnv() string {
 
 // Checks whether the request-reply's host and port exists
 func (e *Env) UrlExist() bool {
-	return len(e.port) > 0 && len(e.host) > 0
+	return len(e.port) > 0 && len(e.host) > 0 && len(e.public_key) > 0
 }
 
 // Checks whether the port exists
 func (e *Env) PortExist() bool {
-	return len(e.port) > 0
+	return len(e.port) > 0 && len(e.public_key) > 0 && len(e.secret_key) > 0
 }
 
 // Checks whether the broadcast host and port exists
 func (e *Env) BroadcastExist() bool {
-	return len(e.broadcast_host) > 0 && len(e.broadcast_port) > 0
+	return len(e.broadcast_host) > 0 && len(e.broadcast_port) > 0 && len(e.broadcast_public_key) > 0
 }
