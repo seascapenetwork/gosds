@@ -7,15 +7,15 @@ import (
 
 // The SDS Service will accepts the Request message.
 type Request struct {
-	Command string
-	Param   map[string]interface{}
+	Command    string
+	Parameters map[string]interface{}
 }
 
 // Convert Request to JSON
 func (request *Request) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"command": request.Command,
-		"params":  request.Param,
+		"command":    request.Command,
+		"parameters": request.Parameters,
 	}
 }
 
@@ -62,14 +62,14 @@ func ParseRequest(msgs []string) (Request, error) {
 	if err != nil {
 		return Request{}, err
 	}
-	parameters, err := GetMap(dat, "params")
+	parameters, err := GetMap(dat, "parameters")
 	if err != nil {
 		return Request{}, err
 	}
 
 	request := Request{
-		Command: command,
-		Param:   parameters,
+		Command:    command,
+		Parameters: parameters,
 	}
 
 	return request, nil
