@@ -84,8 +84,8 @@ func (b *Smartcontract) ToString() (string, error) {
 func (b *Smartcontract) RemoteSet(socket *remote.Socket) error {
 	// Send hello.
 	request := message.Request{
-		Command: "smartcontract_set",
-		Param:   b.ToJSON(),
+		Command:    "smartcontract_set",
+		Parameters: b.ToJSON(),
 	}
 
 	_, err := socket.RequestRemoteService(&request)
@@ -101,7 +101,7 @@ func RemoteSmartcontract(socket *remote.Socket, network_id string, address strin
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_get",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"network_id": network_id,
 			"address":    address,
 		},
@@ -123,8 +123,8 @@ func RemoteSmartcontract(socket *remote.Socket, network_id string, address strin
 func RemoteSmartcontracts(socket *remote.Socket) ([]*Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "smartcontract_get_all",
-		Param:   map[string]interface{}{},
+		Command:    "smartcontract_get_all",
+		Parameters: map[string]interface{}{},
 	}
 
 	params, err := socket.RequestRemoteService(&request)

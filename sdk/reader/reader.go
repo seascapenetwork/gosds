@@ -22,7 +22,7 @@ func (r *Reader) Read(t topic.Topic, args map[string]interface{}) message.Reply 
 
 	request := message.Request{
 		Command: "smartcontract_read",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"topic_string": t.ToString(topic.FULL_LEVEL),
 			"arguments":    args,
 			"address":      r.address,

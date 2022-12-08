@@ -22,7 +22,7 @@ func (r *Writer) Write(t topic.Topic, args map[string]interface{}) message.Reply
 
 	request := message.Request{
 		Command: "smartcontract_write",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"topic_string": t.ToString(topic.FULL_LEVEL),
 			"arguments":    args,
 			"address":      r.address,
@@ -44,7 +44,7 @@ func (r *Writer) AddToPool(t topic.Topic, args map[string]interface{}) message.R
 
 	request := message.Request{
 		Command: "pool_add",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"topic_string": t.ToString(topic.FULL_LEVEL),
 			"arguments":    args,
 			"address":      r.address,

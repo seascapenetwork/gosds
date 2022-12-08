@@ -109,7 +109,7 @@ func (s *Subscriber) get_snapshot() error {
 	for {
 		request := message.Request{
 			Command: "snapshot_get",
-			Param: map[string]interface{}{
+			Parameters: map[string]interface{}{
 				"smartcontract_keys":   generic_type.ToStringList(s.smartcontractKeys),
 				"block_timestamp_from": block_timestamp_from,
 				"block_timestamp_to":   block_timestamp_to,

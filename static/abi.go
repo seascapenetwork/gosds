@@ -76,7 +76,7 @@ func RemoteAbiRegister(socket *remote.Socket, body interface{}) (map[string]inte
 	// Send hello.
 	request := message.Request{
 		Command: "abi_register",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"abi": body,
 		},
 	}
@@ -89,7 +89,7 @@ func RemoteAbi(socket *remote.Socket, abi_hash string) (*Abi, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "abi_get",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"abi_hash": abi_hash,
 		},
 	}

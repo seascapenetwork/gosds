@@ -124,7 +124,7 @@ func RemoteTransactionDeployed(socket *remote.Socket, network_id string, Txid st
 	// Send hello.
 	request := message.Request{
 		Command: "transaction_deployed_get",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"network_id": network_id,
 			"Txid":       Txid,
 		},

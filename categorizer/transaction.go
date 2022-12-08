@@ -132,7 +132,7 @@ func (transaction *Transaction) AddSmartcontractData(smartcontract *Smartcontrac
 func RemoteTransactionAmount(socket *remote.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string) (int, error) {
 	request := message.Request{
 		Command: "transaction_amount",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"block_timestamp_from": blockTimestampFrom,
 			"block_timestamp_to":   blockTimestampTo,
 			"smartcontract_keys":   smartcontractKeys,
@@ -154,7 +154,7 @@ func RemoteTransactionAmount(socket *remote.Socket, blockTimestampFrom int, bloc
 func RemoteTransactions(socket *remote.Socket, blockTimestampFrom int, blockTimestampTo int, smartcontractKeys []string, page int, limit uint) ([]*Transaction, error) {
 	request := message.Request{
 		Command: "transaction_get_all",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"block_timestamp_from": blockTimestampFrom,
 			"block_timestamp_to":   blockTimestampTo,
 			"smartcontract_keys":   smartcontractKeys,

@@ -99,7 +99,7 @@ func ParseLog(blob map[string]interface{}) (*Log, error) {
 func RemoteLogs(socket *remote.Socket, keys []string) ([]*Log, error) {
 	request := message.Request{
 		Command: "log_get_all",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"keys": keys,
 		},
 	}
@@ -131,7 +131,7 @@ func RemoteLogs(socket *remote.Socket, keys []string) ([]*Log, error) {
 func RemoteLogParse(socket *remote.Socket, network_id string, address string, data string, topics []string) (string, map[string]interface{}, error) {
 	request := message.Request{
 		Command: "parse",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"network_id": network_id,
 			"address":    address,
 			"data":       data,

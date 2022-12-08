@@ -103,8 +103,8 @@ func (c *Configuration) ToString() string {
 func RemoteConfiguration(socket *remote.Socket, t *topic.Topic) (*Configuration, *Smartcontract, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "configuration_get",
-		Param:   t.ToJSON(),
+		Command:    "configuration_get",
+		Parameters: t.ToJSON(),
 	}
 	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
@@ -135,8 +135,8 @@ func RemoteConfiguration(socket *remote.Socket, t *topic.Topic) (*Configuration,
 func RemoteConfigurationRegister(socket *remote.Socket, conf *Configuration) error {
 	// Send hello.
 	request := message.Request{
-		Command: "configuration_register",
-		Param:   conf.ToJSON(),
+		Command:    "configuration_register",
+		Parameters: conf.ToJSON(),
 	}
 
 	_, err := socket.RequestRemoteService(&request)

@@ -128,7 +128,7 @@ func (smartcontract *Smartcontract) ToString() string {
 func RemoteSmartcontracts(socket *remote.Socket, tf *topic.TopicFilter) ([]*Smartcontract, []string, error) {
 	request := message.Request{
 		Command: "smartcontract_filter",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"topic_filter": tf.ToJSON(),
 		},
 	}
@@ -165,7 +165,7 @@ func RemoteSmartcontractKeys(socket *remote.Socket, tf *topic.TopicFilter) (Filt
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_key_filter",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"topic_filter": tf.ToJSON(),
 		},
 	}
@@ -195,7 +195,7 @@ func RemoteSmartcontract(socket *remote.Socket, network_id string, address strin
 	// Send hello.
 	request := message.Request{
 		Command: "smartcontract_get",
-		Param: map[string]interface{}{
+		Parameters: map[string]interface{}{
 			"network_id": network_id,
 			"address":    address,
 		},
@@ -215,8 +215,8 @@ func RemoteSmartcontract(socket *remote.Socket, network_id string, address strin
 func RemoteSmartcontractRegister(socket *remote.Socket, s *Smartcontract) (string, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "smartcontract_register",
-		Param:   s.ToJSON(),
+		Command:    "smartcontract_register",
+		Parameters: s.ToJSON(),
 	}
 
 	params, err := socket.RequestRemoteService(&request)
