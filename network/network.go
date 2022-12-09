@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -70,6 +71,9 @@ func IsSupportedNetwork(networkId string, flag int8) bool {
 	}
 
 	_, ok := supportedNetworks[networkId]
+	fmt.Println("=======================================")
+	fmt.Println("networkId: ", networkId, "flag: ", flag, "supportedNetworks: ", supportedNetworks, "ok: ", ok)
+	fmt.Println("=======================================")
 	return ok
 }
 
