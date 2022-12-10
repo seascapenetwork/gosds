@@ -160,6 +160,14 @@ func (e *Env) PublicKey() string {
 	return e.public_key
 }
 
+func (e *Env) BroadcastSecretKey() string {
+	return e.broadcast_secret_key
+}
+
+func (e *Env) BroadcastPublicKey() string {
+	return e.broadcast_public_key
+}
+
 func (e *Env) DomainName() string {
 	return e.service
 }
