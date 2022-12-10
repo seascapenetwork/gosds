@@ -19,7 +19,7 @@ type CommandHandlers map[string]interface{}
 
 // Creates a new Reply controller using ZeroMQ
 // The requesters is the list of curve public keys that are allowed to connect to the socket.
-func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, public_keys []string) {
+func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts account.Accounts) {
 	if !e.PortExist() {
 		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' port"))
 	}
@@ -34,7 +34,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, public_ke
 	// for any domain name where this controller is running.
 	zmq.AuthAllow("*")
 	// only whitelisted users are allowed
-	zmq.AuthCurveAdd("*", public_keys...)
+	zmq.AuthCurveAdd("*", accounts.PublicKeys()...)
 
 	handler := func(version string, request_id string, domain string, address string, identity string, mechanism string, credentials ...string) (metadata map[string]string) {
 		metadata = map[string]string{
