@@ -47,6 +47,41 @@ func (account *Account) IsService() bool {
 	return account.service != nil
 }
 
+func (account *Account) ToJSON() map[string]interface{} {
+	return map[string]interface{}{
+		"id":              account.id,
+		"nonce_timestamp": account.NonceTimestamp,
+		"public_key":      account.PublicKey,
+		"organization":    account.Organization,
+	}
+}
+
+func ParseJson(raw map[string]interface{}) (*Account, error) {
+	public_key, err := message.GetString(raw, "public_key")
+	if err != nil {
+		return nil, err
+	}
+	service, err := env.GetByPublicKey(public_key)
+	if err != nil {
+		id, err := message.GetUint64(raw, "id")
+		if err != nil {
+			return nil, err
+		}
+		nonce_timestamp, err := message.GetUint64(raw, "nonce_timestamp")
+		if err != nil {
+			return nil, err
+		}
+
+		organization, err := message.GetString(raw, "organization")
+		if err != nil {
+			return nil, err
+		}
+		return NewDeveloper(id, public_key, nonce_timestamp, organization), nil
+	} else {
+		return NewService(service), nil
+	}
+}
+
 ///////////////////////////////////////////////////////////
 //
 // Group operations
@@ -57,6 +92,21 @@ func NewAccounts() Accounts {
 	accounts := make(Accounts, 0)
 
 	return accounts
+}
+
+func NewAccountsFromJson(raw_accounts []map[string]interface{}) (Accounts, error) {
+	accounts := make(Accounts, len(raw_accounts))
+
+	for _, raw := range raw_accounts {
+		account, err := ParseJson(raw)
+		if err != nil {
+			return nil, err
+		}
+
+		accounts = accounts.Add(account)
+	}
+
+	return accounts, nil
 }
 
 func (accounts Accounts) Add(account *Account) Accounts {
