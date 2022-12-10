@@ -5,7 +5,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"errors"
+	"strings"
 
+	"github.com/blocklords/gosds/message"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/ecies"
 )
@@ -37,6 +40,41 @@ func NewEcdsaPrivateKey(private_key *ecdsa.PrivateKey) *SmartcontractDeveloper {
 		EcdsaPublicKey:  &private_key.PublicKey,
 		EcdsaPrivateKey: private_key,
 	}
+}
+
+// Get the account who did the request.
+// Account is verified first using the signature parameter of the request.
+// If the signature is not a valid, then returns an error.
+//
+// For now it supports ECDSA addresses only. Therefore verification automatically assumes that address
+// is for the ethereum network.
+func NewSmartcontractDeveloper(request *message.SmartcontractDeveloperRequest) (*SmartcontractDeveloper, error) {
+	// without 0x prefix
+	signature, err := hexutil.Decode(request.Signature)
+	if err != nil {
+		return nil, err
+	}
+	digested_hash := request.DigestedMessage()
+
+	if len(signature) != 65 {
+		return nil, errors.New("the ECDSA signature length is invalid. It should be 64 bytes long. Signature length: ")
+	}
+	if signature[64] != 27 && signature[64] != 28 {
+		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
+	}
+	signature[64] -= 27 // Transform yellow paper V from 27/28 to 0/1
+
+	ecdsa_public_key, err := crypto.SigToPub(digested_hash, signature)
+	if err != nil {
+		return nil, err
+	}
+
+	address := crypto.PubkeyToAddress(*ecdsa_public_key).Hex()
+	if !strings.EqualFold(address, request.Address) {
+		return nil, errors.New("the request 'address' parameter mismatches to the account derived from signature. Account derived from the signature: " + address + "...")
+	}
+
+	return NewEcdsaPublicKey(ecdsa_public_key), nil
 }
 
 // Encrypts the given data with a public key

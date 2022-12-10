@@ -2,12 +2,8 @@ package message
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"strings"
 
-	"github.com/blocklords/gosds/account"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -69,46 +65,11 @@ func (request *SmartcontractDeveloperRequest) message_hash() []byte {
 
 // Gets the digested message with a prefix
 // For ethereum the prefix is "\x19Ethereum Signed Message:\n"
-func (request *SmartcontractDeveloperRequest) digested_message() []byte {
+func (request *SmartcontractDeveloperRequest) DigestedMessage() []byte {
 	message_hash := request.message_hash()
 	prefix := []byte("\x19Ethereum Signed Message:\n32")
 	digested_hash := crypto.Keccak256Hash(append(prefix, message_hash...))
 	return digested_hash.Bytes()
-}
-
-// Get the account who did the request.
-// Account is verified first using the signature parameter of the request.
-// If the signature is not a valid, then returns an error.
-//
-// For now it supports ECDSA addresses only. Therefore verification automatically assumes that address
-// is for the ethereum network.
-func (request *SmartcontractDeveloperRequest) GetAccount() (*account.SmartcontractDeveloper, error) {
-	// without 0x prefix
-	signature, err := hexutil.Decode(request.Signature)
-	if err != nil {
-		return nil, err
-	}
-	digested_hash := request.digested_message()
-
-	if len(signature) != 65 {
-		return nil, errors.New("the ECDSA signature length is invalid. It should be 64 bytes long. Signature length: ")
-	}
-	if signature[64] != 27 && signature[64] != 28 {
-		return nil, errors.New("invalid Ethereum signature (V is not 27 or 28)")
-	}
-	signature[64] -= 27 // Transform yellow paper V from 27/28 to 0/1
-
-	ecdsa_public_key, err := crypto.SigToPub(digested_hash, signature)
-	if err != nil {
-		return nil, err
-	}
-
-	address := crypto.PubkeyToAddress(*ecdsa_public_key).Hex()
-	if !strings.EqualFold(address, request.Address) {
-		return nil, errors.New("the request 'address' parameter mismatches to the account derived from signature. Account derived from the signature: " + address + "...")
-	}
-
-	return account.NewEcdsaPublicKey(ecdsa_public_key), nil
 }
 
 // Parse the messages from zeromq into the SmartcontractDeveloperRequest

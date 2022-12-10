@@ -111,7 +111,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 				continue
 			}
 
-			smartcontract_developer, err := smartcontract_developer_request.GetAccount()
+			smartcontract_developer, err := account.NewSmartcontractDeveloper(&smartcontract_developer_request)
 			if err != nil {
 				fail := message.Fail("invalid smartcontract developer request " + err.Error())
 				reply := fail.ToString()
