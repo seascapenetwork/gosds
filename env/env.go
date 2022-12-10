@@ -6,6 +6,7 @@ The environment package's file category handles loading
 package env
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -121,6 +122,30 @@ func Get(service string) *Env {
 		broadcast_public_key: broadcast_public_key,
 		broadcast_secret_key: broadcast_secret_key,
 	}
+}
+
+// Returns the service environment parameters by its Public Key
+func GetByPublicKey(public_key string) (*Env, error) {
+	services := []string{
+		"SPAGHETTI",
+		"CATEGORIZER",
+		"STATIC",
+		"GATEWAY",
+		"PUBLISHER",
+		"READER",
+		"WRITER",
+		"BUNDLE",
+		"LOG",
+	}
+
+	for _, service := range services {
+		service_env := Get(service)
+		if service_env != nil && service_env.public_key == public_key {
+			return service_env, nil
+		}
+	}
+
+	return nil, errors.New("the service wasn't found for a given public key")
 }
 
 func (e *Env) SecretKey() string {
