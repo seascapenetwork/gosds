@@ -188,11 +188,13 @@ func TcpPushSocketOrPanic(port uint) *zmq.Socket {
 
 // Create a new Socket on TCP protocol otherwise exit from the program
 // The socket is the wrapper over zmq.SUB
-func TcpSubscriberOrPanic(e *env.Env) *Socket {
+func TcpSubscriberOrPanic(e *env.Env, client_env *env.Env) *Socket {
 	socket, sockErr := zmq.NewSocket(zmq.SUB)
 	if sockErr != nil {
 		panic(sockErr)
 	}
+
+	socket.ClientAuthCurve(e.BroadcastPublicKey(), client_env.BroadcastPublicKey(), client_env.BroadcastSecretKey())
 
 	conErr := socket.Connect("tcp://" + e.BroadcastUrl())
 	if conErr != nil {
