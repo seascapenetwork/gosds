@@ -68,6 +68,8 @@ func ParseServiceRequest(msgs []string) (ServiceRequest, error) {
 		return ServiceRequest{}, err
 	}
 
+	// The developers or smartcontract developer public keys are not in the environment variable
+	// as a servie.
 	service_env, err := env.GetByPublicKey(public_key)
 	if err != nil {
 		return ServiceRequest{}, err
