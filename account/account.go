@@ -16,7 +16,7 @@ type Account struct {
 
 type Accounts []*Account
 
-// Creates a new Account with a public key but without private key
+// Creates a new Account for a developer.
 func NewDeveloper(id uint64, public_key string, nonce_timestamp uint64, organization string) *Account {
 	return &Account{
 		id:             id,
@@ -27,7 +27,7 @@ func NewDeveloper(id uint64, public_key string, nonce_timestamp uint64, organiza
 	}
 }
 
-// Creates a new Account with a private key
+// Creates a new Account for a service
 func NewService(service *env.Env) *Account {
 	return &Account{
 		id:             0,
