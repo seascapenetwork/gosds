@@ -98,6 +98,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 
 		var reply message.Reply
 
+		// The command might be from a smartcontract developer.
 		command_handler, ok := commands[request.Command].(func(*sql.DB, message.SmartcontractDeveloperRequest, *account.SmartcontractDeveloper) message.Reply)
 		if ok {
 			smartcontract_developer_request, err := message.ParseSmartcontractDeveloperRequest(msg_raw)
@@ -122,7 +123,26 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 
 			reply = command_handler(db, smartcontract_developer_request, smartcontract_developer)
 		} else {
-			reply = commands[request.Command].(func(*sql.DB, message.Request) message.Reply)(db, request)
+			// The command might be from another SDS Service
+			service_handler, ok := commands[request.Command].(func(*sql.DB, message.ServiceRequest, *account.Account) message.Reply)
+			if ok {
+				service_request, err := message.ParseServiceRequest(msg_raw)
+				if err != nil {
+					fail := message.Fail("invalid service request " + err.Error())
+					reply := fail.ToString()
+					if _, err := socket.SendMessage(reply); err != nil {
+						println(fmt.Errorf("sending reply: %w", err))
+					}
+					continue
+				}
+
+				service_account := account.NewService(service_request.Service)
+
+				reply = service_handler(db, service_request, service_account)
+			} else {
+				// The command is from a developer.
+				reply = commands[request.Command].(func(*sql.DB, message.Request) message.Reply)(db, request)
+			}
 		}
 
 		if _, err := socket.SendMessage(reply.ToString()); err != nil {
