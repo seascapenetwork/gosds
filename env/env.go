@@ -66,6 +66,9 @@ func Static() *Env { return Get("STATIC") }
 // Returns the envrionment variable for the SDS Gateway
 func Gateway() *Env { return Get("GATEWAY") }
 
+// Returns the envrionment variable for the SDS Developer Gateway
+func DeveloperGateway() *Env { return Get("DEVELOPER_GATEWAY") }
+
 // Returns the envrionment variable for the SDS Publisher
 func Publisher() *Env { return Get("PUBLISHER") }
 
@@ -136,6 +139,7 @@ func GetByPublicKey(public_key string) (*Env, error) {
 		"WRITER",
 		"BUNDLE",
 		"LOG",
+		"DEVELOPER_GATEWAY",
 	}
 
 	for _, service := range services {
