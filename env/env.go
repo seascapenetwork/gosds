@@ -7,6 +7,7 @@ package env
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -245,4 +246,66 @@ func (e *Env) PortExist() bool {
 // Checks whether the broadcast host and port exists
 func (e *Env) BroadcastExist() bool {
 	return len(e.broadcast_host) > 0 && len(e.broadcast_port) > 0 && len(e.broadcast_public_key) > 0
+}
+
+// Necessary environment variables, to subscribe to the SDS Service
+func (e *Env) ToSubscribe() *Env {
+	if !e.BroadcastExist() {
+		service := e.DomainName()
+		broadcast_host := service + "_BROADCAST_HOST"
+		broadcast_port := service + "_BROADCAST_PORT"
+		public_key := service + "_BROADCAST_PUBLIC_KEY"
+
+		panic(fmt.Sprintf("the '%s' service couldn't be built. missing: '%s', '%s', '%s'",
+			e.ServiceName(), broadcast_host, broadcast_port, public_key))
+	}
+
+	return e
+}
+
+// Necessary environment variables, to request to SDS Service.
+func (e *Env) ToRequest() *Env {
+	if !e.UrlExist() {
+		service := e.DomainName()
+		host := service + "_HOST"
+		port := service + "_PORT"
+		public_key := service + "_PUBLIC_KEY"
+
+		panic(fmt.Sprintf("the '%s' service couldn't be built. missing: '%s', '%s', '%s'",
+			e.ServiceName(), host, port, public_key))
+	}
+
+	return e
+}
+
+// Necessary environment variables, to broadcast by SDS Service.
+// Panic otherwise.
+func (e *Env) ToBroadcast() *Env {
+	if !e.BroadcastPortExists() {
+		service := e.DomainName()
+		port := service + "_BROADCAST_PORT"
+		public_key := service + "_BROADCAST_PUBLIC_KEY"
+		secret_key := service + "_BROADCAST_SECRET_KEY"
+
+		panic(fmt.Sprintf("the '%s' service couldn't be built. missing: '%s', '%s', '%s'",
+			e.ServiceName(), port, public_key, secret_key))
+	}
+
+	return e
+}
+
+// Necessary environment variables, to reply by SDS Service.
+// Panic otherwise.
+func (e *Env) ToReply() *Env {
+	if !e.BroadcastPortExists() {
+		service := e.DomainName()
+		port := service + "_PORT"
+		public_key := service + "_PUBLIC_KEY"
+		secret_key := service + "_SECRET_KEY"
+
+		panic(fmt.Sprintf("the '%s' service couldn't be built. missing: '%s', '%s', '%s'",
+			e.ServiceName(), port, public_key, secret_key))
+	}
+
+	return e
 }
