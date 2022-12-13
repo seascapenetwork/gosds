@@ -297,7 +297,7 @@ func (e *Env) ToBroadcast() *Env {
 // Necessary environment variables, to reply by SDS Service.
 // Panic otherwise.
 func (e *Env) ToReply() *Env {
-	if !e.BroadcastPortExists() {
+	if !e.PortExist() {
 		service := e.DomainName()
 		port := service + "_PORT"
 		public_key := service + "_PUBLIC_KEY"
