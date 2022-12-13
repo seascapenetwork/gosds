@@ -88,8 +88,11 @@ func ParseJson(raw map[string]interface{}) (*Account, error) {
 //
 ///////////////////////////////////////////////////////////
 
-func NewAccounts() Accounts {
-	accounts := make(Accounts, 0)
+func NewAccounts(new_accounts ...*Account) Accounts {
+	accounts := make(Accounts, len(new_accounts))
+	for i, a := range new_accounts {
+		accounts[i] = a
+	}
 
 	return accounts
 }
@@ -109,17 +112,21 @@ func NewAccountsFromJson(raw_accounts []map[string]interface{}) (Accounts, error
 	return accounts, nil
 }
 
-func (accounts Accounts) Add(account *Account) Accounts {
-	accounts = append(accounts, account)
+func (accounts Accounts) Add(new_accounts ...*Account) Accounts {
+	for _, account := range new_accounts {
+		accounts = append(accounts, account)
+	}
 
 	return accounts
 }
 
-func (accounts Accounts) Remove(account *Account) Accounts {
-	for i := range accounts {
-		if account.PublicKey == accounts[i].PublicKey {
-			accounts = append(accounts[:i], accounts[i+1:]...)
-			return accounts
+func (accounts Accounts) Remove(new_accounts ...*Account) Accounts {
+	for _, account := range new_accounts {
+		for i := range accounts {
+			if account.PublicKey == accounts[i].PublicKey {
+				accounts = append(accounts[:i], accounts[i+1:]...)
+				return accounts
+			}
 		}
 	}
 
