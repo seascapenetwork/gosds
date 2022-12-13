@@ -48,7 +48,7 @@ func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*S
 // The queued messages will be read and cached by the Subscriber.read_from_publisher() after getting the snapshot.
 func (subscriber *Subscriber) connect_to_publisher() error {
 	// Run the Subscriber that is connected to the Broadcaster
-	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(env.Publisher())
+	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(env.Publisher(), env.Developer())
 
 	// Subscribing to the events, but we will not call the sub.ReceiveMessage
 	// until we will not get the snapshot of the missing data.
@@ -78,7 +78,6 @@ func (s *Subscriber) Start() error {
 
 	// now create a broadcaster channel to send back to the developer the messages
 	s.BroadcastChan = make(chan message.Broadcast)
-
 
 	go s.get_data()
 	return nil
