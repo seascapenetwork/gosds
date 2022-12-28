@@ -9,23 +9,27 @@ import (
 )
 
 type Log struct {
-	NetworkId string
-	Txid      string // txId column
-	LogIndex  uint
-	Data      string // text data type
-	Topics    []string
-	Address   string
+	NetworkId      string
+	Txid           string // txId column
+	BlockNumber    uint64
+	BlockTimestamp uint64
+	LogIndex       uint
+	Data           string // text data type
+	Topics         []string
+	Address        string
 }
 
 // JSON representation of the spaghetti.Log
 func (b *Log) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"network_id": b.NetworkId,
-		"txid":       b.Txid,
-		"log_index":  b.LogIndex,
-		"data":       b.Data,
-		"topics":     b.Topics,
-		"address":    b.Address,
+		"network_id":      b.NetworkId,
+		"txid":            b.Txid,
+		"block_timestamp": b.BlockTimestamp,
+		"block_number":    b.BlockNumber,
+		"log_index":       b.LogIndex,
+		"data":            b.Data,
+		"topics":          b.Topics,
+		"address":         b.Address,
 	}
 }
 
@@ -67,13 +71,24 @@ func ParseLog(parameters map[string]interface{}) (*Log, error) {
 		return nil, err
 	}
 
+	block_timestamp, err := message.GetUint64(parameters, "block_timestamp")
+	if err != nil {
+		return nil, err
+	}
+	block_number, err := message.GetUint64(parameters, "block_number")
+	if err != nil {
+		return nil, err
+	}
+
 	return &Log{
-		NetworkId: network_id,
-		Address:   address,
-		Txid:      txid,
-		LogIndex:  uint(log_index),
-		Data:      data,
-		Topics:    topics,
+		NetworkId:      network_id,
+		Address:        address,
+		Txid:           txid,
+		BlockNumber:    block_number,
+		BlockTimestamp: block_timestamp,
+		LogIndex:       uint(log_index),
+		Data:           data,
+		Topics:         topics,
 	}, nil
 }
 

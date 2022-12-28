@@ -9,13 +9,15 @@ import (
 
 // The Smartcontract Event Log
 type Log struct {
-	ID        uint64                 // ID in the database
-	NetworkId string                 // Network ID
-	Txid      string                 // Transaction ID where it occured
-	LogIndex  uint                   // Log index in the block
-	Address   string                 // Smartcontract address
-	Log       string                 // Event log name
-	Output    map[string]interface{} // Event log parameters
+	ID             uint64 // ID in the database
+	NetworkId      string // Network ID
+	Txid           string // Transaction ID where it occured
+	BlockNumber    uint64
+	BlockTimestamp uint64
+	LogIndex       uint                   // Log index in the block
+	Address        string                 // Smartcontract address
+	Log            string                 // Event log name
+	Output         map[string]interface{} // Event log parameters
 }
 
 // Call categorizer.NewLog().AddMetadata().AddSmartcontractData()
@@ -30,6 +32,8 @@ func NewLog(log string, output map[string]interface{}) *Log {
 // Add the metadata such as transaction id and log index from spaghetti data
 func (log *Log) AddMetadata(spaghetti_log *spaghetti.Log) *Log {
 	log.Txid = spaghetti_log.Txid
+	log.BlockNumber = spaghetti_log.BlockNumber
+	log.BlockTimestamp = spaghetti_log.BlockTimestamp
 	log.LogIndex = spaghetti_log.LogIndex
 	return log
 }
@@ -44,12 +48,14 @@ func (log *Log) AddSmartcontractData(smartcontract *Smartcontract) *Log {
 // Convert to the Map[string]interface
 func (log *Log) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"network_id": log.NetworkId,
-		"txid":       log.Txid,
-		"log_index":  log.LogIndex,
-		"address":    log.Address,
-		"log":        log.Log,
-		"output":     log.Output,
+		"network_id":      log.NetworkId,
+		"txid":            log.Txid,
+		"block_timestamp": log.BlockTimestamp,
+		"block_number":    log.BlockNumber,
+		"log_index":       log.LogIndex,
+		"address":         log.Address,
+		"log":             log.Log,
+		"output":          log.Output,
 	}
 }
 
@@ -71,6 +77,16 @@ func ParseLog(blob map[string]interface{}) (*Log, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	block_timestamp, err := message.GetUint64(blob, "block_timestamp")
+	if err != nil {
+		return nil, err
+	}
+	block_number, err := message.GetUint64(blob, "block_number")
+	if err != nil {
+		return nil, err
+	}
+
 	log_name, err := message.GetString(blob, "log")
 	if err != nil {
 		return nil, err
@@ -82,12 +98,14 @@ func ParseLog(blob map[string]interface{}) (*Log, error) {
 	}
 
 	log := Log{
-		NetworkId: network_id,
-		Txid:      txid,
-		LogIndex:  uint(log_index),
-		Address:   address,
-		Log:       log_name,
-		Output:    output,
+		NetworkId:      network_id,
+		Txid:           txid,
+		BlockNumber:    block_number,
+		BlockTimestamp: block_timestamp,
+		LogIndex:       uint(log_index),
+		Address:        address,
+		Log:            log_name,
+		Output:         output,
 	}
 
 	return &log, nil
