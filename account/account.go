@@ -90,9 +90,7 @@ func ParseJson(raw map[string]interface{}) (*Account, error) {
 
 func NewAccounts(new_accounts ...*Account) Accounts {
 	accounts := make(Accounts, len(new_accounts))
-	for i, a := range new_accounts {
-		accounts[i] = a
-	}
+	copy(accounts, new_accounts)
 
 	return accounts
 }
