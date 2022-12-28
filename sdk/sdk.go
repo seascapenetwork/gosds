@@ -80,6 +80,8 @@ var Version string = "Seascape GoSDS version: 0.0.8"
 //
 // The repUrl is the link to the SDS Gateway.
 // The address argument is the wallet address that is allowed to read.
+//
+//    address is the whitelisted user's address.
 func NewReader(address string) (*reader.Reader, error) {
 	e, err := gatewayEnv(false)
 	if err != nil {
