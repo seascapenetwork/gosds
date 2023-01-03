@@ -54,7 +54,7 @@ func ParseTransactionFromJson(blob map[string]interface{}) *Transaction {
 	}
 }
 
-func ParseTransaction(tx spaghetti.Transaction, method string, inputs map[string]interface{}, c *Block, blockNumber int, blockTimestamp int) Transaction {
+func ParseTransaction(tx spaghetti.Transaction, method string, inputs map[string]interface{}, c *Smartcontract, blockNumber int, blockTimestamp int) Transaction {
 	return Transaction{
 		NetworkId:      c.NetworkID(),
 		Address:        c.Address(),

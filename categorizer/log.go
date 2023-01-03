@@ -86,7 +86,7 @@ func RemoteLogParse(socket *remote.Socket, networkId string, address string, dat
 	return params["name"].(string), params["args"], nil
 }
 
-func NewLog(l spaghetti.Log, log string, output map[string]interface{}, c *Block) Log {
+func NewLog(l spaghetti.Log, log string, output map[string]interface{}, c *Smartcontract) Log {
 	return Log{
 		NetworkId: c.NetworkID(),
 		Address:   c.Address(),
