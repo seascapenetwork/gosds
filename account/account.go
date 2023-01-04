@@ -98,13 +98,13 @@ func NewAccounts(new_accounts ...*Account) Accounts {
 func NewAccountsFromJson(raw_accounts []map[string]interface{}) (Accounts, error) {
 	accounts := make(Accounts, len(raw_accounts))
 
-	for _, raw := range raw_accounts {
+	for i, raw := range raw_accounts {
 		account, err := ParseJson(raw)
 		if err != nil {
 			return nil, err
 		}
 
-		accounts = accounts.Add(account)
+		accounts[i] = account
 	}
 
 	return accounts, nil
