@@ -188,10 +188,7 @@ func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interfac
 		env_timeout := env.GetNumeric("SDS_REQUEST_TIMEOUT")
 		if env_timeout != 0 {
 			request_timeout = time.Duration(env_timeout) * time.Second
-			fmt.Println("the SDS_REQUEST_TIMEOUT environment variable was given, request timeout ", request_timeout)
 		}
-	} else {
-		fmt.Println("the SDS_REQUEST_TIMEOUT environment variable is missing, using the default timeout ", request_timeout)
 	}
 
 	// we attempt requests for an infinite amount of time.
