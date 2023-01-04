@@ -88,10 +88,21 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 		return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
 	}
 
+	request_timeout := REQUEST_TIMEOUT
+	if env.Exists("SDS_REQUEST_TIMEOUT") {
+		env_timeout := env.GetNumeric("SDS_REQUEST_TIMEOUT")
+		if env_timeout != 0 {
+			request_timeout = time.Duration(env_timeout) * time.Second
+			fmt.Println("the SDS_REQUEST_TIMEOUT environment variable was given, request timeout ", request_timeout)
+		}
+	} else {
+		fmt.Println("the SDS_REQUEST_TIMEOUT environment variable is missing, using the default timeout ", request_timeout)
+	}
+
 	// we attempt requests for an infinite amount of time.
 	for {
 		//  Poll socket for a reply, with timeout
-		sockets, err := poller.Poll(REQUEST_TIMEOUT)
+		sockets, err := poller.Poll(request_timeout)
 		if err != nil {
 			return nil, fmt.Errorf("failed to to send the command '%s' to '%s'. poll error: %w", request.Command, socket.remoteService.ServiceName(), err)
 		}
@@ -119,7 +130,7 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 
 			return reply.Params, nil
 		} else {
-			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", REQUEST_TIMEOUT, ", retrying...")
+			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", request_timeout, ", retrying...")
 			//  Old socket is confused; close it and open a new one
 			socket.socket.Close()
 
