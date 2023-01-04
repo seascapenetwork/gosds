@@ -19,6 +19,10 @@ func (request *Request) ToJSON() map[string]interface{} {
 	}
 }
 
+func (request *Request) CommandName() string {
+	return request.Command
+}
+
 // Request message as a  sequence of bytes
 func (reply *Request) ToBytes() []byte {
 	interfaces := reply.ToJSON()

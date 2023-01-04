@@ -14,13 +14,16 @@ type ServiceRequest struct {
 	Parameters map[string]interface{} // Parameters of the request
 }
 
+func (request *ServiceRequest) CommandName() string {
+	return request.Command
+}
+
 // Convert ServiceRequest to JSON
 func (request *ServiceRequest) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"service_name": request.Service.DomainName(),
-		"public_key":   request.Service.PublicKey(),
-		"command":      request.Command,
-		"parameters":   request.Parameters,
+		"public_key": request.Service.PublicKey(),
+		"command":    request.Command,
+		"parameters": request.Parameters,
 	}
 }
 
