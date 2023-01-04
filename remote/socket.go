@@ -10,6 +10,7 @@
 package remote
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -26,6 +27,13 @@ type Socket struct {
 	// its used as a clarification
 	remoteService *env.Env
 	socket        *zmq.Socket
+}
+
+type SDS_Message interface {
+	*message.Request | *message.ServiceRequest
+
+	CommandName() string
+	ToString() string
 }
 
 // Request-Reply checks the internet connection after this amount of time.
@@ -147,6 +155,93 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 			//  We send a request, then we work to get a reply
 			if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
 				return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
+			}
+		}
+	}
+}
+
+// Requests a message to the remote service.
+// The socket parameter is the Request socket from this service.
+// The request is the message.
+func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interface{}, error) {
+	socket_type, err := socket.socket.GetType()
+	if err != nil {
+		return nil, err
+	}
+
+	if socket_type != zmq.REQ && socket_type != zmq.DEALER {
+		return nil, errors.New("invalid socket type for request-reply")
+	}
+
+	poller := zmq.NewPoller()
+	poller.Add(socket.socket, zmq.POLLIN)
+
+	command_name := request.CommandName()
+
+	//  We send a request, then we work to get a reply
+	if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
+		return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", command_name, socket.remoteService.ServiceName(), err)
+	}
+
+	request_timeout := REQUEST_TIMEOUT
+	if env.Exists("SDS_REQUEST_TIMEOUT") {
+		env_timeout := env.GetNumeric("SDS_REQUEST_TIMEOUT")
+		if env_timeout != 0 {
+			request_timeout = time.Duration(env_timeout) * time.Second
+			fmt.Println("the SDS_REQUEST_TIMEOUT environment variable was given, request timeout ", request_timeout)
+		}
+	} else {
+		fmt.Println("the SDS_REQUEST_TIMEOUT environment variable is missing, using the default timeout ", request_timeout)
+	}
+
+	// we attempt requests for an infinite amount of time.
+	for {
+		//  Poll socket for a reply, with timeout
+		sockets, err := poller.Poll(request_timeout)
+		if err != nil {
+			return nil, fmt.Errorf("failed to to send the command '%s' to '%s'. poll error: %w", command_name, socket.remoteService.ServiceName(), err)
+		}
+
+		//  Here we process a server reply and exit our loop if the
+		//  reply is valid. If we didn't a reply we close the client
+		//  socket and resend the request. We try a number of times
+		//  before finally abandoning:
+
+		if len(sockets) > 0 {
+			// Wait for reply.
+			r, err := socket.socket.RecvMessage(0)
+			if err != nil {
+				return nil, fmt.Errorf("failed to receive the command '%s' message from '%s'. socket error: %w", command_name, socket.remoteService.ServiceName(), err)
+			}
+
+			reply, err := message.ParseReply(r)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse the command '%s' reply from '%s'. gosds error %w", command_name, socket.remoteService.ServiceName(), err)
+			}
+
+			if !reply.IsOK() {
+				return nil, fmt.Errorf("the command '%s' replied with a failure by '%s'. the reply error message: %s", command_name, socket.remoteService.ServiceName(), reply.Message)
+			}
+
+			return reply.Params, nil
+		} else {
+			fmt.Println("command '", command_name, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", request_timeout, ", retrying...")
+			//  Old socket is confused; close it and open a new one
+			socket.socket.Close()
+
+			socket.socket, _ = zmq.NewSocket(zmq.REQ)
+			if err := socket.socket.Connect("tcp://" + socket.remoteService.Url()); err != nil {
+				panic(fmt.Errorf("error '"+socket.remoteService.ServiceName()+"' connect: %w", err))
+			}
+
+			// Recreate poller for new client
+			poller = zmq.NewPoller()
+			poller.Add(socket.socket, zmq.POLLIN)
+
+			//  Send request again, on new socket
+			//  We send a request, then we work to get a reply
+			if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
+				return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", command_name, socket.remoteService.ServiceName(), err)
 			}
 		}
 	}
