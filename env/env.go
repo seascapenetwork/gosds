@@ -87,13 +87,15 @@ func Log() *Env { return Get("LOG") }
 
 func NewDeveloper(public_key string, secret_key string) *Env {
 	return &Env{
-		service:        "developer",
-		host:           "",
-		port:           "",
-		broadcast_host: "",
-		broadcast_port: "",
-		public_key:     public_key,
-		secret_key:     secret_key,
+		service:              "developer",
+		host:                 "",
+		port:                 "",
+		broadcast_host:       "",
+		broadcast_port:       "",
+		public_key:           public_key,
+		secret_key:           secret_key,
+		broadcast_public_key: public_key,
+		broadcast_secret_key: secret_key,
 	}
 }
 
