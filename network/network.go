@@ -7,6 +7,12 @@ import (
 	"strings"
 )
 
+type Network struct {
+	Id       string
+	Provider string
+	Flag     int8 // With VM or Without VM
+}
+
 // any blockchain
 const ALL int8 = 0
 
