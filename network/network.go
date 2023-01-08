@@ -13,14 +13,16 @@ type Network struct {
 	Flag     int8 // With VM or Without VM
 }
 
-// any blockchain
-const ALL int8 = 0
+const (
+	ALL        int8 = 0  // any blockchain
+	WITH_VM    int8 = 1  // with EVM
+	WITHOUT_VM int8 = -1 // without EVM, it's an L2
+)
 
-// filter only blockchain networks with Virtual Machine.
-// "imx" will not be here.
-const WITH_VM int8 = 1
-
-const WITHOUT_VM int8 = -1
+// Whether the given flag is valid or not
+func IsValidFlag(flag int8) bool {
+	return flag == WITH_VM || flag == WITHOUT_VM || flag == ALL
+}
 
 // Returns list of the supported networks by this SDS Service
 func GetSupportedNetworks(flag int8) map[string]string {
