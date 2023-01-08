@@ -49,7 +49,7 @@ func ParseNetwork(raw map[string]interface{}) (*Network, error) {
 		return nil, err
 	}
 
-	return &network.Network{
+	return &Network{
 		Id:       id,
 		Provider: provider,
 		Flag:     flag,
