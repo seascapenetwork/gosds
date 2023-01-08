@@ -72,7 +72,7 @@ func ParseNetworks(raw_networks []map[string]interface{}) ([]*Network, error) {
 	return networks, nil
 }
 
-func (n *Network) ToJson() map[string]interface{} {
+func (n *Network) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"id":       n.Id,
 		"provider": n.Provider,
