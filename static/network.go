@@ -133,6 +133,30 @@ func GetNetworkIds(socket *remote.Socket, flag int8) ([]string, error) {
 	return message.GetStringList(params, "network_ids")
 }
 
+// Returns list of support network IDs from SDS Static
+func GetNetworks(socket *remote.Socket, flag int8) ([]*Network, error) {
+	if !IsValidFlag(flag) {
+		return nil, errors.New("invalid 'flag' parameter")
+	}
+	request := message.Request{
+		Command: "network_get_all",
+		Parameters: map[string]interface{}{
+			"flag": flag,
+		},
+	}
+
+	params, err := socket.RequestRemoteService(&request)
+	if err != nil {
+		return nil, err
+	}
+	raw_networks, err := message.GetMapList(params, "networks")
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseNetworks(raw_networks)
+}
+
 // Returns the Blockchain Network access provider
 func GetNetwork(socket *remote.Socket, network_id string, flag int8) (*Network, error) {
 	if !IsValidFlag(flag) {
