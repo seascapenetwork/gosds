@@ -113,7 +113,8 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 
 			smartcontract_developer, err := account.NewSmartcontractDeveloper(&smartcontract_developer_request)
 			if err != nil {
-				fail := message.Fail("invalid smartcontract developer request " + err.Error())
+				println(smartcontract_developer_request.NonceTimestamp)
+				fail := message.Fail("reply controller error as invalid smartcontract developer request: " + err.Error())
 				reply := fail.ToString()
 				if _, err := socket.SendMessage(reply); err != nil {
 					println(fmt.Errorf("sending reply: %w", err))
