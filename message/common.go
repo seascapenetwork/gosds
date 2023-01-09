@@ -28,12 +28,9 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 	if !exists {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
-	value, ok := raw.(float64)
-	if !ok {
-		return 0, errors.New("parameter '" + name + "' expected to be as a float")
-	}
+	value, err := raw.(json.Number).Float64()
 
-	return value, nil
+	return value, err
 }
 
 // Returns the paramater as a string
