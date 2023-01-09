@@ -13,6 +13,10 @@ func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
 
+	pure_value, ok := raw.(uint64)
+	if ok {
+		return pure_value, nil
+	}
 	value, ok := raw.(json.Number)
 	if !ok {
 		return 0, errors.New("parameter '" + name + "' expected to be as a number")
@@ -27,6 +31,10 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 	raw, exists := parameters[name]
 	if !exists {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
+	}
+	pure_value, ok := raw.(float64)
+	if ok {
+		return pure_value, nil
 	}
 	value, err := raw.(json.Number).Float64()
 
