@@ -126,7 +126,7 @@ func RemoteTransactionDeployed(socket *remote.Socket, network_id string, Txid st
 		Command: "transaction_deployed_get",
 		Parameters: map[string]interface{}{
 			"network_id": network_id,
-			"Txid":       Txid,
+			"txid":       Txid,
 		},
 	}
 
