@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
@@ -74,14 +75,14 @@ func (request *SmartcontractDeveloperRequest) DigestedMessage() []byte {
 
 // Parse the messages from zeromq into the SmartcontractDeveloperRequest
 func ParseSmartcontractDeveloperRequest(msgs []string) (SmartcontractDeveloperRequest, error) {
-	msg := ""
-	for _, v := range msgs {
-		msg += v
-	}
+	msg := ToString(msgs)
 
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal([]byte(msg), &dat); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(msg))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&dat); err != nil {
 		return SmartcontractDeveloperRequest{}, err
 	}
 

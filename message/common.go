@@ -2,6 +2,7 @@ package message
 
 import (
 	"errors"
+	"strconv"
 )
 
 // Returns the parameter as an uint64
@@ -10,12 +11,15 @@ func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
 	if !exists {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
-	value, ok := raw.(uint64)
+
+	value, ok := raw.(string)
 	if !ok {
-		return 0, errors.New("expected number type for '" + name + "' parameter")
+		return 0, errors.New("parameter '" + name + "' expected to be as a number string")
 	}
 
-	return uint64(value), nil
+	number, err := strconv.ParseUint(value, 10, 64)
+
+	return number, err
 }
 
 func GetFloat64(parameters map[string]interface{}, name string) (float64, error) {
@@ -23,12 +27,14 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 	if !exists {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
-	value, ok := raw.(float64)
+	value, ok := raw.(string)
 	if !ok {
-		return 0, errors.New("expected float number type for '" + name + "' parameter")
+		return 0, errors.New("parameter '" + name + "' expected to be as a float string")
 	}
 
-	return value, nil
+	number, err := strconv.ParseFloat(value, 64)
+
+	return number, err
 }
 
 // Returns the paramater as a string

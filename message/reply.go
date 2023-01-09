@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 )
 
 // SDS Service returns the reply. Anyone who sends a request to the SDS Service gets this message.
@@ -48,13 +49,13 @@ func (reply *Reply) ToBytes() []byte {
 
 // Zeromq received raw strings converted to the Reply message.
 func ParseReply(msgs []string) (Reply, error) {
-	msg := ""
-	for _, v := range msgs {
-		msg += v
-	}
+	msg := ToString(msgs)
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal([]byte(msg), &dat); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(msg))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&dat); err != nil {
 		return Reply{}, err
 	}
 

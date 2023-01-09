@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 // The SDS Service will accepts the Request message.
@@ -51,14 +52,14 @@ func ToString(msgs []string) string {
 
 // Parse the messages from zeromq into the Request
 func ParseRequest(msgs []string) (Request, error) {
-	msg := ""
-	for _, v := range msgs {
-		msg += v
-	}
+	msg := ToString(msgs)
 
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal([]byte(msg), &dat); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(msg))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&dat); err != nil {
 		return Request{}, err
 	}
 

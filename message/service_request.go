@@ -3,6 +3,7 @@ package message
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/blocklords/gosds/env"
 )
@@ -46,14 +47,14 @@ func (request *ServiceRequest) ToString() string {
 
 // Parse the messages from zeromq into the ServiceRequest
 func ParseServiceRequest(msgs []string) (ServiceRequest, error) {
-	msg := ""
-	for _, v := range msgs {
-		msg += v
-	}
+	msg := ToString(msgs)
 
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal([]byte(msg), &dat); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(msg))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&dat); err != nil {
 		return ServiceRequest{}, err
 	}
 

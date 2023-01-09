@@ -75,7 +75,10 @@ func ParseBroadcast(msgs []string) (Broadcast, error) {
 
 	var dat map[string]interface{}
 
-	if err := json.Unmarshal([]byte(broadcastRaw), &dat); err != nil {
+	decoder := json.NewDecoder(strings.NewReader(broadcastRaw))
+	decoder.UseNumber()
+
+	if err := decoder.Decode(&dat); err != nil {
 		return Broadcast{}, err
 	}
 
