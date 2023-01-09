@@ -1,6 +1,7 @@
 package message
 
 import (
+	"encoding/json"
 	"errors"
 	"strconv"
 )
@@ -12,12 +13,12 @@ func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
 
-	value, ok := raw.(string)
+	value, ok := raw.(json.Number)
 	if !ok {
-		return 0, errors.New("parameter '" + name + "' expected to be as a number string")
+		return 0, errors.New("parameter '" + name + "' expected to be as a number")
 	}
 
-	number, err := strconv.ParseUint(value, 10, 64)
+	number, err := strconv.ParseUint(string(value), 10, 64)
 
 	return number, err
 }
@@ -27,14 +28,12 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 	if !exists {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
-	value, ok := raw.(string)
+	value, ok := raw.(float64)
 	if !ok {
-		return 0, errors.New("parameter '" + name + "' expected to be as a float string")
+		return 0, errors.New("parameter '" + name + "' expected to be as a float")
 	}
 
-	number, err := strconv.ParseFloat(value, 64)
-
-	return number, err
+	return value, nil
 }
 
 // Returns the paramater as a string
