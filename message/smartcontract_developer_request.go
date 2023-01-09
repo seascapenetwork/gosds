@@ -86,6 +86,8 @@ func ParseSmartcontractDeveloperRequest(msgs []string) (SmartcontractDeveloperRe
 		return SmartcontractDeveloperRequest{}, err
 	}
 
+	fmt.Println(dat)
+
 	command, err := GetString(dat, "command")
 	if err != nil {
 		return SmartcontractDeveloperRequest{}, err
