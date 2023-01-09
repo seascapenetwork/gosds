@@ -10,7 +10,7 @@ func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
 	if !exists {
 		return 0, errors.New("missing '" + name + "' parameter in the Request")
 	}
-	value, ok := raw.(float64)
+	value, ok := raw.(uint64)
 	if !ok {
 		return 0, errors.New("expected number type for '" + name + "' parameter")
 	}
