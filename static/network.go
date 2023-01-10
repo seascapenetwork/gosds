@@ -18,9 +18,9 @@ type Network struct {
 }
 
 const (
-	ALL        int8 = 0  // any blockchain
-	WITH_VM    int8 = 1  // with EVM
-	WITHOUT_VM int8 = -1 // without EVM, it's an L2
+	ALL        int8 = 0 // any blockchain
+	WITH_VM    int8 = 1 // with EVM
+	WITHOUT_VM int8 = 2 // without EVM, it's an L2
 )
 
 // Whether the given flag is valid Network Flag or not.
