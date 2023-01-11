@@ -13,7 +13,34 @@ func optional_paths() ([]string, error) {
 		return nil, nil
 	}
 
-	return args, nil
+	paths := make([]string, 0)
+
+	for _, arg := range args {
+		if arg[:2] != "--" {
+			paths = append(paths, arg)
+		}
+	}
+
+	return paths, nil
+}
+
+// Load arguments, not the environment variable paths.
+// Arguments are with --prefix
+func LoadArguments() ([]string, error) {
+	args := os.Args[1:]
+	if len(args) == 0 {
+		return nil, nil
+	}
+
+	parameters := make([]string, 0)
+
+	for _, arg := range args {
+		if arg[:2] == "--" {
+			parameters = append(parameters, arg[2:])
+		}
+	}
+
+	return parameters, nil
 }
 
 // Load all .env files
