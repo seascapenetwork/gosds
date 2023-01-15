@@ -4,6 +4,7 @@ package broadcast
 import (
 	"log"
 
+	"github.com/blocklords/gosds/argument"
 	"github.com/blocklords/gosds/env"
 
 	"github.com/blocklords/gosds/message"
@@ -15,15 +16,25 @@ import (
 //
 // It assumes that the another package is starting an authentication layer of zmq:
 // ZAP.
+//
+// If some error is encountered, then this package panics
 func Run(channel chan message.Broadcast, broadcast_env *env.Env, whitelisted_users []*env.Env) {
 	public_keys := make([]string, len(whitelisted_users))
 	for k, v := range whitelisted_users {
 		public_keys[k] = v.BroadcastPublicKey()
 	}
 
-	domain_name := broadcast_env.DomainName() + "_broadcast"
+	plain, err := argument.Exist(argument.PLAIN)
+	if err != nil {
+		panic(err)
+	}
 
-	zmq.AuthCurveAdd(domain_name, public_keys...)
+	domain_name := ""
+	if !plain {
+		domain_name = broadcast_env.DomainName() + "_broadcast"
+
+		zmq.AuthCurveAdd(domain_name, public_keys...)
+	}
 
 	// prepare the publisher
 	pub, err := zmq.NewSocket(zmq.PUB)
@@ -31,7 +42,9 @@ func Run(channel chan message.Broadcast, broadcast_env *env.Env, whitelisted_use
 		panic("error while trying to create a new socket " + err.Error())
 	}
 	defer pub.Close()
-	pub.ServerAuthCurve(domain_name, broadcast_env.BroadcastSecretKey())
+	if !plain {
+		pub.ServerAuthCurve(domain_name, broadcast_env.BroadcastSecretKey())
+	}
 
 	err = pub.Bind("tcp://*:" + broadcast_env.BroadcastPort())
 	if err != nil {
