@@ -137,7 +137,10 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 		} else {
 			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", request_timeout, ", retrying...")
 			//  Old socket is confused; close it and open a new one
-			socket.socket.Close()
+			err := socket.socket.Close()
+			if err != nil {
+				panic("failed to close the socket: " + err.Error())
+			}
 
 			socket.socket, _ = zmq.NewSocket(zmq.REQ)
 			if err := socket.socket.Connect("tcp://" + socket.remoteService.Url()); err != nil {
