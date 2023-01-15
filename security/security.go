@@ -43,4 +43,6 @@ func EnableSecurity() error {
 		return metadata
 	}
 	zmq.AuthSetMetadataHandler(handler)
+
+	return nil
 }
