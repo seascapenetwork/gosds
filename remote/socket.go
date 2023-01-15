@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/blocklords/gosds/argument"
 	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
 	zmq "github.com/pebbe/zmq4"
@@ -37,6 +38,7 @@ type SDS_Message interface {
 }
 
 // Request-Reply checks the internet connection after this amount of time.
+// This is the default time if argument wasn't given that changes the REQUEST_TIMEOUT
 const (
 	REQUEST_TIMEOUT = 60 * time.Second //  msecs, (> 1000!)
 )
@@ -248,13 +250,19 @@ func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interfac
 // The socket is the wrapper over zmq.REQ
 func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
 	if !e.UrlExist() {
-		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port"))
+		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port and curve key if security was enabled"))
 	}
 
 	sock, _ := zmq.NewSocket(zmq.REQ)
-	err := sock.ClientAuthCurve(e.PublicKey(), client.PublicKey(), client.SecretKey())
+	plain, err := argument.Exist(argument.PLAIN)
 	if err != nil {
 		panic(err)
+	}
+	if !plain {
+		err = sock.ClientAuthCurve(e.PublicKey(), client.PublicKey(), client.SecretKey())
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	if err := sock.Connect("tcp://" + e.Url()); err != nil {
@@ -297,7 +305,16 @@ func TcpSubscriberOrPanic(e *env.Env, client_env *env.Env) *Socket {
 		panic(sockErr)
 	}
 
-	socket.ClientAuthCurve(e.BroadcastPublicKey(), client_env.BroadcastPublicKey(), client_env.BroadcastSecretKey())
+	plain, err := argument.Exist(argument.PLAIN)
+	if err != nil {
+		panic(err)
+	}
+	if !plain {
+		err = socket.ClientAuthCurve(e.BroadcastPublicKey(), client_env.BroadcastPublicKey(), client_env.BroadcastSecretKey())
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	conErr := socket.Connect("tcp://" + e.BroadcastUrl())
 	if conErr != nil {
