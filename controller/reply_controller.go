@@ -6,9 +6,10 @@ package controller
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 
 	"github.com/blocklords/gosds/account"
+	"github.com/blocklords/gosds/argument"
 	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
 
@@ -19,79 +20,72 @@ type CommandHandlers map[string]interface{}
 
 // Creates a new Reply controller using ZeroMQ
 // The requesters is the list of curve public keys that are allowed to connect to the socket.
-func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts account.Accounts) {
+func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts account.Accounts) error {
 	if !e.PortExist() {
-		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' port"))
+		return errors.New("missing necessary environment variables. Please set '" + e.ServiceName() + "_PORT' and/or '" + e.ServiceName() + "_PUBLIC_KEY', '" + e.ServiceName() + "_SECRET_KEY'")
 	}
 
-	zmq.AuthSetVerbose(true)
-	err := zmq.AuthStart()
+	exist, err := argument.Exist(argument.PLAIN)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	// allow income from any ip address
-	// for any domain name where this controller is running.
-	zmq.AuthAllow("*")
-	// only whitelisted users are allowed
-	zmq.AuthCurveAdd("*", accounts.PublicKeys()...)
-
-	handler := func(version string, request_id string, domain string, address string, identity string, mechanism string, credentials ...string) (metadata map[string]string) {
-		metadata = map[string]string{
-			"request_id": request_id,
-			"Identity":   zmq.Z85encode(credentials[0]),
-			"address":    address,
-			"pub_key":    zmq.Z85encode(credentials[0]), // if mechanism is not curve, it will fail
-		}
-		return metadata
+	if !exist {
+		// only whitelisted users are allowed
+		zmq.AuthCurveAdd("*", accounts.PublicKeys()...)
 	}
-	zmq.AuthSetMetadataHandler(handler)
 
 	// Socket to talk to clients
 	socket, err := zmq.NewSocket(zmq.REP)
 	if err != nil {
-		panic(err)
+		return err
+	} else {
+		defer socket.Close()
 	}
-	err = socket.ServerAuthCurve(e.DomainName(), e.SecretKey())
-	if err != nil {
-		panic(err)
+
+	if !exist {
+		err = socket.ServerAuthCurve(e.DomainName(), e.SecretKey())
+		if err != nil {
+			return err
+		}
 	}
-	defer socket.Close()
-	defer zmq.AuthStop()
+
 	if err := socket.Bind("tcp://*:" + e.Port()); err != nil {
-		println("error to bind socket for '"+e.ServiceName()+" - "+e.Url()+"' : ", err.Error())
-		panic(err)
+		return errors.New("error to bind socket for '" + e.ServiceName() + " - " + e.Url() + "' : " + err.Error())
 	}
 
 	println("'" + e.ServiceName() + "' request-reply server runs on port " + e.Port())
 
 	for {
+		// msg_raw, metadata, err := socket.RecvMessageWithMetadata(0, "pub_key")
 		msg_raw, err := socket.RecvMessage(0)
 		if err != nil {
-			println(fmt.Errorf("receiving: %w", err))
-			fail := message.Fail("invalid command " + err.Error())
+			fail := message.Fail("socket error to receive message " + err.Error())
 			reply := fail.ToString()
 			if _, err := socket.SendMessage(reply); err != nil {
-				println(fmt.Errorf(" reply: %w", err))
+				return errors.New("failed to reply: %w" + err.Error())
 			}
 			continue
 		}
+
+		// All request types derive from the basic request.
+		// We first attempt to parse basic request from the raw message
 		request, err := message.ParseRequest(msg_raw)
 		if err != nil {
-			fail := message.Fail("invalid request " + err.Error())
+			fail := message.Fail("invalid json request: " + err.Error())
 			reply := fail.ToString()
 			if _, err := socket.SendMessage(reply); err != nil {
-				println(fmt.Errorf("sending reply: %w", err))
+				return errors.New("failed to reply: %w" + err.Error())
 			}
 			continue
 		}
 
 		// Any request types is compatible with the Request.
 		if commands[request.Command] == nil {
-			fail := message.Fail("invalid command " + request.Command)
+			fail := message.Fail("unsupported command " + request.Command)
 			reply := fail.ToString()
 			if _, err := socket.SendMessage(reply); err != nil {
-				println(fmt.Errorf(" reply: %w", err))
+				return errors.New("failed to reply: %w" + err.Error())
 			}
 			continue
 		}
@@ -106,7 +100,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 				fail := message.Fail("invalid smartcontract developer request " + err.Error())
 				reply := fail.ToString()
 				if _, err := socket.SendMessage(reply); err != nil {
-					println(fmt.Errorf("sending reply: %w", err))
+					return errors.New("failed to reply: %w" + err.Error())
 				}
 				continue
 			}
@@ -117,7 +111,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 				fail := message.Fail("reply controller error as invalid smartcontract developer request: " + err.Error())
 				reply := fail.ToString()
 				if _, err := socket.SendMessage(reply); err != nil {
-					println(fmt.Errorf("sending reply: %w", err))
+					return errors.New("failed to reply: %w" + err.Error())
 				}
 				continue
 			}
@@ -132,7 +126,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 					fail := message.Fail("invalid service request " + err.Error())
 					reply := fail.ToString()
 					if _, err := socket.SendMessage(reply); err != nil {
-						println(fmt.Errorf("sending reply: %w", err))
+						return errors.New("failed to reply: %w" + err.Error())
 					}
 					continue
 				}
@@ -147,7 +141,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 		}
 
 		if _, err := socket.SendMessage(reply.ToString()); err != nil {
-			println(fmt.Errorf("error sending controller reply: %w", err))
+			return errors.New("failed to reply: %w" + err.Error())
 		}
 	}
 }
