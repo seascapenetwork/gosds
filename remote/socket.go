@@ -275,10 +275,12 @@ func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
 	}
 }
 
-
 // Create a new Socket on TCP protocol otherwise exit from the program
 // The socket is the wrapper over zmq.SUB
 func TcpSubscriberOrPanic(e *env.Env, client_env *env.Env) *Socket {
+	if !e.BroadcastExist() {
+		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' broadcast host and broadcast port and curve key if security was enabled"))
+	}
 	socket, sockErr := zmq.NewSocket(zmq.SUB)
 	if sockErr != nil {
 		panic(sockErr)
