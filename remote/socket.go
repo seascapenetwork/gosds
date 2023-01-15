@@ -275,27 +275,6 @@ func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
 	}
 }
 
-// Create a new Socket on TCP protocol otherwise exit from the program
-// The socket is the wrapper over zmq.PULL
-func TcpPullSocketOrPanic(port uint) *zmq.Socket {
-	sock, _ := zmq.NewSocket(zmq.PULL)
-	if err := sock.Bind(fmt.Sprintf("tcp://*:%d", port)); err != nil {
-		panic(fmt.Errorf("error to create a pull socket at port %d", port))
-	}
-
-	return sock
-}
-
-// Create a new Socket on TCP protocol otherwise exit from the program
-// The socket is the wrapper over zmq.PUSH
-func TcpPushSocketOrPanic(port uint) *zmq.Socket {
-	sock, _ := zmq.NewSocket(zmq.PUSH)
-	if err := sock.Connect(fmt.Sprintf("tcp://localhost:%d", port)); err != nil {
-		panic(fmt.Errorf("error to create a push socket at port %d", port))
-	}
-
-	return sock
-}
 
 // Create a new Socket on TCP protocol otherwise exit from the program
 // The socket is the wrapper over zmq.SUB
