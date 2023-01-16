@@ -27,6 +27,8 @@ func (socket *Socket) SetSubscribeFilter(topic string) error {
 // The function is intended to be called as a gouritine.
 //
 // When a new message arrives, the method will send it to the channel.
+//
+// if time is out, it will send the timeout message.
 func (socket *Socket) Subscribe(channel chan message.Reply, exit_channel chan int, time_out time.Duration) {
 	socketType, err := socket.socket.GetType()
 	if err != nil {
@@ -39,7 +41,6 @@ func (socket *Socket) Subscribe(channel chan message.Reply, exit_channel chan in
 	}
 
 	timer := time.AfterFunc(time_out, func() {
-		exit_channel <- 0
 		channel <- message.Fail("timeout")
 	})
 	defer timer.Stop()
@@ -47,7 +48,10 @@ func (socket *Socket) Subscribe(channel chan message.Reply, exit_channel chan in
 	for {
 		select {
 		case <-exit_channel:
-			fmt.Println("exit signal was received")
+			if !timer.Stop() {
+				<-timer.C
+			}
+			fmt.Println("exit signal was received for subscriber")
 			return
 		default:
 			msgRaw, err := socket.socket.RecvMessage(zmq.DONTWAIT)
