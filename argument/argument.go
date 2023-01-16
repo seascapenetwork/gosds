@@ -1,11 +1,22 @@
 package argument
 
-import "os"
+import (
+	"errors"
+	"os"
+	"strings"
+)
 
 const (
 	PLAIN     = "plain"     // Switch off the authentication and encryption for SDS Service
 	BROADCAST = "broadcast" // runs only broadcaster
 	REPLY     = "reply"     // runs only request-reply server
+
+	// network id, support only this network.
+	// example:
+	//    --network-id=5
+	//
+	//    support only network id 5
+	NETWORK_ID = "network-id"
 )
 
 // any command line data that comes after the files are .env file paths
@@ -58,10 +69,26 @@ func Exist(argument string) (bool, error) {
 	return Has(arguments, argument), nil
 }
 
+// Extracts the value of the argument.
+// Argument comes after '='
+func GetValue(argument string) (string, error) {
+	parts := strings.Split(argument, "=")
+	if len(parts) != 2 {
+		return "", errors.New("no value found, or too many values")
+	}
+
+	return parts[1], nil
+}
+
 // Whehter the given argument exists or not.
 func Has(arguments []string, required string) bool {
 	for _, argument := range arguments {
 		if argument == required {
+			return true
+		}
+
+		length := len(required)
+		if len(argument) > length && argument[:length] == required {
 			return true
 		}
 	}
