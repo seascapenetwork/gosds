@@ -110,13 +110,19 @@ func (socket *Socket) reconnect() error {
 	} else {
 		url = socket.remoteService.Url()
 	}
-	err = socket.socket.Disconnect("tcp://" + url)
-	if err != nil {
-		return err
-	}
-	wait := time.Duration(5) * time.Second
-	time.Sleep(wait)
 
+	if err := socket.socket.Connect("tcp://" + url); err != nil {
+		return fmt.Errorf("error '"+socket.remoteService.ServiceName()+"' connect: %w", err)
+	}
+
+	socket.poller = zmq.NewPoller()
+	socket.poller.Add(socket.socket, zmq.POLLIN)
+
+	return nil
+}
+
+// Close the remote connection
+func (socket *Socket) Close() error {
 	return socket.socket.Close()
 }
 
@@ -145,14 +151,6 @@ func (socket *Socket) RemoteEnv() *env.Env {
 // Note that it converts the failure reply into an error. Rather than replying reply itself back to user.
 // In case of successful request, the function returns reply parameters.
 func (socket *Socket) RequestRemoteService(request *message.Request) (map[string]interface{}, error) {
-	poller := zmq.NewPoller()
-	poller.Add(socket.socket, zmq.POLLIN)
-
-	//  We send a request, then we work to get a reply
-	if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
-		return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
-	}
-
 	request_timeout := REQUEST_TIMEOUT
 	if env.Exists("SDS_REQUEST_TIMEOUT") {
 		env_timeout := env.GetNumeric("SDS_REQUEST_TIMEOUT")
