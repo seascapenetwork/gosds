@@ -159,8 +159,6 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 		}
 	}
 
-	counter := 1
-
 	// we attempt requests for an infinite amount of time.
 	for {
 		//  We send a request, then we work to get a reply
@@ -197,6 +195,7 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 
 			return reply.Params, nil
 		} else {
+			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", request_timeout, ", retrying...")
 			err := socket.reconnect()
 			if err != nil {
 				return nil, err
