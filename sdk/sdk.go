@@ -81,7 +81,7 @@ var Version string = "Seascape GoSDS version: 0.0.8"
 // The repUrl is the link to the SDS Gateway.
 // The address argument is the wallet address that is allowed to read.
 //
-//    address is the whitelisted user's address.
+//	address is the whitelisted user's address.
 func NewReader(address string) (*reader.Reader, error) {
 	e, err := gatewayEnv(false)
 	if err != nil {
@@ -139,7 +139,10 @@ func NewSubscriber(address string, topicFilter *topic.TopicFilter) (*subscriber.
 // Returns the gateway environment variable
 // If the broadcast argument set true, then Gateway will require the broadcast to be set as well.
 func gatewayEnv(broadcast bool) (*env.Env, error) {
-	e := env.Gateway()
+	e, err := env.Gateway()
+	if err != nil {
+		return nil, err
+	}
 	if !e.UrlExist() {
 		return nil, errors.New("missing 'GATEWAY_HOST' and/or 'GATEWAY_PORT' environment variables")
 	}
@@ -152,7 +155,10 @@ func gatewayEnv(broadcast bool) (*env.Env, error) {
 }
 
 func developer_env() (*env.Env, error) {
-	e := env.Developer()
+	e, err := env.Developer()
+	if err != nil {
+		return nil, err
+	}
 	if len(e.SecretKey()) == 0 || len(e.PublicKey()) == 0 {
 		return nil, errors.New("missing 'DEVELOPER_SECRET_KEY' and/or 'DEVELOPER_PUBLIC_KEY' environment variables")
 	}
