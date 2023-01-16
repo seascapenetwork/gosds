@@ -328,6 +328,8 @@ func (s *Subscriber) read_from_publisher() error {
 				if err != nil {
 					return err
 				}
+				// wait for another incoming messages
+				continue
 			} else {
 				if err := s.close(exit_channel); err != nil {
 					return err
