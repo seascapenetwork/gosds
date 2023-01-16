@@ -27,6 +27,8 @@ type Socket struct {
 	// The name of remote SDS service and its URL
 	// its used as a clarification
 	remoteService *env.Env
+	thisService   *env.Env
+	poller        *zmq.Poller
 	socket        *zmq.Socket
 }
 
@@ -43,12 +45,65 @@ const (
 	REQUEST_TIMEOUT = 60 * time.Second //  msecs, (> 1000!)
 )
 
-// Close the remote connection
-func (socket *Socket) Close() error {
-	socket_type, err := socket.socket.GetType()
+func (socket *Socket) reconnect() error {
+	var socket_ctx *zmq.Context
+	var socket_type zmq.Type
+
+	if socket.socket != nil {
+		ctx, err := socket.socket.Context()
+		if err != nil {
+			return err
+		} else {
+			socket_ctx = ctx
+		}
+
+		socket_type, err = socket.socket.GetType()
+		if err != nil {
+			return err
+		}
+
+		err = socket.Close()
+		if err != nil {
+			return err
+		}
+		socket.socket = nil
+	}
+
+	sock, err := socket_ctx.NewSocket(socket_type)
+	if err != nil {
+		return err
+	} else {
+		socket.socket = sock
+		err = socket.socket.SetLinger(0)
+		if err != nil {
+			return err
+		}
+	}
+
+	plain, err := argument.Exist(argument.PLAIN)
 	if err != nil {
 		return err
 	}
+	if !plain {
+		public_key := ""
+		client_public_key := ""
+		client_secret_key := ""
+		if socket_type == zmq.SUB {
+			public_key = socket.remoteService.BroadcastPublicKey()
+			client_public_key = socket.thisService.BroadcastPublicKey()
+			client_secret_key = socket.thisService.BroadcastSecretKey()
+		} else {
+			public_key = socket.remoteService.PublicKey()
+			client_public_key = socket.thisService.PublicKey()
+			client_secret_key = socket.thisService.SecretKey()
+		}
+
+		err = socket.socket.ClientAuthCurve(public_key, client_public_key, client_secret_key)
+		if err != nil {
+			return err
+		}
+	}
+
 	url := ""
 	if socket_type == zmq.SUB {
 		url = socket.remoteService.BroadcastUrl()
@@ -106,10 +161,17 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 		}
 	}
 
+	counter := 1
+
 	// we attempt requests for an infinite amount of time.
 	for {
+		//  We send a request, then we work to get a reply
+		if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
+			return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
+		}
+
 		//  Poll socket for a reply, with timeout
-		sockets, err := poller.Poll(request_timeout)
+		sockets, err := socket.poller.Poll(request_timeout)
 		if err != nil {
 			return nil, fmt.Errorf("failed to to send the command '%s' to '%s'. poll error: %w", request.Command, socket.remoteService.ServiceName(), err)
 		}
@@ -137,26 +199,9 @@ func (socket *Socket) RequestRemoteService(request *message.Request) (map[string
 
 			return reply.Params, nil
 		} else {
-			fmt.Println("command '", request.Command, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", request_timeout, ", retrying...")
-			//  Old socket is confused; close it and open a new one
-			err := socket.socket.Close()
+			err := socket.reconnect()
 			if err != nil {
-				panic("failed to close the socket: " + err.Error())
-			}
-
-			socket.socket, _ = zmq.NewSocket(zmq.REQ)
-			if err := socket.socket.Connect("tcp://" + socket.remoteService.Url()); err != nil {
-				panic(fmt.Errorf("error '"+socket.remoteService.ServiceName()+"' connect: %w", err))
-			}
-
-			// Recreate poller for new client
-			poller = zmq.NewPoller()
-			poller.Add(socket.socket, zmq.POLLIN)
-
-			//  Send request again, on new socket
-			//  We send a request, then we work to get a reply
-			if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
-				return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", request.Command, socket.remoteService.ServiceName(), err)
+				return nil, err
 			}
 		}
 	}
@@ -253,26 +298,21 @@ func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
 		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port and curve key if security was enabled"))
 	}
 
-	sock, _ := zmq.NewSocket(zmq.REQ)
-	plain, err := argument.Exist(argument.PLAIN)
+	sock, err := zmq.NewSocket(zmq.REQ)
 	if err != nil {
 		panic(err)
 	}
-	if !plain {
-		err = sock.ClientAuthCurve(e.PublicKey(), client.PublicKey(), client.SecretKey())
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	if err := sock.Connect("tcp://" + e.Url()); err != nil {
-		panic(fmt.Errorf("error '"+e.ServiceName()+"' connect: %w", err))
-	}
-
-	return &Socket{
+	new_socket := Socket{
 		remoteService: e,
+		thisService:   client,
 		socket:        sock,
 	}
+	err = new_socket.reconnect()
+	if err != nil {
+		panic(err)
+	}
+
+	return &new_socket
 }
 
 // Create a new Socket on TCP protocol otherwise exit from the program
