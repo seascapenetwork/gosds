@@ -293,15 +293,12 @@ func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel 
 // If the messages are received successfully from the blockchain, then
 // gosds/message.Reply.Params will contain the following parameter:
 //
-//			Reply.Params: {
-//	 		"data": [ {
-//					"topic_string": gosds/topic.Topic.ToString(),		// the smartcontract topic string
-//					"block_timestamp": uint64,							// the latest block timestmap
-//		         	"transactions": []gosds/categorizer.Transaction,	// transactions
-//		         	"logs": []gosds/categorizer.Log,					// smartcontract events
-//					}
-//				]
-//			}
+//		Reply.Params: {
+//			"topic_string": gosds/topic.Topic.ToString(),		// the smartcontract topic string
+//			"block_timestamp": uint64,							// the latest block timestmap
+//	         "transactions": []gosds/categorizer.Transaction,	// transactions
+//	         "logs": []gosds/categorizer.Log,					// smartcontract events
+//		}
 func (s *Subscriber) read_from_publisher() {
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
@@ -443,12 +440,10 @@ func (s *Subscriber) read_from_publisher() {
 			Status:  "OK",
 			Message: "",
 			Params: map[string]interface{}{
-				"data": map[string]interface{}{
-					"topic_string":    s.db.GetTopicString(key),
-					"block_timestamp": block_timestamp,
-					"transactions":    transactions,
-					"logs":            logs,
-				},
+				"topic_string":    s.db.GetTopicString(key),
+				"block_timestamp": block_timestamp,
+				"transactions":    transactions,
+				"logs":            logs,
 			},
 		}
 
