@@ -47,8 +47,17 @@ func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*S
 // Then start to queue the incoming data from the broadcaster.
 // The queued messages will be read and cached by the Subscriber.read_from_publisher() after getting the snapshot.
 func (subscriber *Subscriber) connect_to_publisher() error {
+	gateway_env, err := env.Gateway()
+	if err != nil {
+		return err
+	}
+	developer_env, err := env.Developer()
+	if err != nil {
+		return err
+	}
+
 	// Run the Subscriber that is connected to the Broadcaster
-	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(env.Gateway(), env.Developer())
+	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(gateway_env, developer_env)
 
 	// Subscribing to the events, but we will not call the sub.ReceiveMessage
 	// until we will not get the snapshot of the missing data.
@@ -215,6 +224,10 @@ func (s *Subscriber) load_smartcontracts() error {
 	for i, sm := range smartcontracts {
 		key := sm.KeyString()
 
+		// err := s.db.DeleteBlockTimestamp(key)
+		// if err != nil {
+		// panic(err)
+		// }
 		// cache the smartcontract block timestamp
 		// block timestamp is used to subscribe for the events
 		blockTimestamp := s.db.GetBlockTimestamp(key)
