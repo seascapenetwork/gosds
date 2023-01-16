@@ -69,6 +69,31 @@ func Exist(argument string) (bool, error) {
 	return Has(arguments, argument), nil
 }
 
+// Extracts the value of the argument if it has.
+// The argument value comes after "=".
+//
+// This function gets the arguments from the CLI automatically.
+//
+// If the argument doesn't exist, then returns an empty string.
+// Therefore you should check for the argument existence by calling `argument.Exist()`
+func ExtractValue(arguments []string, required string) (string, error) {
+	found := ""
+	for _, argument := range arguments {
+		// doesn't have a value
+		if argument == required {
+			continue
+		}
+
+		length := len(required)
+		if len(argument) > length && argument[:length] == required {
+			found = argument
+			break
+		}
+	}
+
+	return GetValue(found)
+}
+
 // Extracts the value of the argument.
 // Argument comes after '='
 func GetValue(argument string) (string, error) {
