@@ -206,7 +206,10 @@ func (s *Subscriber) get_data() {
 		return
 	}
 
-	s.read_from_publisher()
+	err = s.read_from_publisher()
+	if err != nil {
+		s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
+	}
 }
 
 // Get the list of the smartcontracts by smartcontract filter from SDS Categorizer via SDS Gateway
@@ -254,16 +257,26 @@ func (s *Subscriber) load_smartcontracts() error {
 	return nil
 }
 
+func (s *Subscriber) close(exit_channel chan int) error {
+	// Close the previous channel
+	exit_channel <- 1
+
+	return s.broadcastSocket.Close()
+}
+
 // In case of the failure to read the data from the Publisher
 // Or there might be a delay.
 // What we do is to reconnect the client to the SDS.
 // Get the snapshot of the missing data, then reconnect the subscriber to read data from SDS Publisher.
 func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel chan int, time_out time.Duration) error {
+	// Close the previous channel
+	exit_channel <- 1
+
 	err := s.broadcastSocket.Close()
 	if err != nil {
-		panic(err)
+		return err
 	}
-	fmt.Println("now restarting the socket")
+	fmt.Println("now restarting the subscriber")
 
 	if err := s.connect_to_publisher(); err != nil {
 		s.BroadcastChan <- message.NewBroadcast("error", message.Fail("failed to connect to the publisher: "+err.Error()))
@@ -275,7 +288,7 @@ func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel 
 		s.BroadcastChan <- message.NewBroadcast("error", message.Fail(err.Error()))
 		close_err := s.broadcastSocket.Close()
 		if close_err != nil {
-			panic(close_err)
+			return close_err
 		}
 		return err
 	}
@@ -299,7 +312,7 @@ func (s *Subscriber) reconnect(receive_channel chan message.Reply, exit_channel 
 //	         "transactions": []gosds/categorizer.Transaction,	// transactions
 //	         "logs": []gosds/categorizer.Log,					// smartcontract events
 //		}
-func (s *Subscriber) read_from_publisher() {
+func (s *Subscriber) read_from_publisher() error {
 	receive_channel := make(chan message.Reply)
 	exit_channel := make(chan int)
 	time_out := time.Duration(time.Second * 30)
@@ -310,50 +323,41 @@ func (s *Subscriber) read_from_publisher() {
 		reply := <-receive_channel
 
 		if !reply.IsOK() {
-			if reply.Message != "timeout" {
-				//  Send results to sink
-				s.BroadcastChan <- message.NewBroadcast("", reply)
-				//  Exit, assume that the Client will restart it.
-				// we might need to restart ourselves later.
-				break
-			} else {
+			if reply.Message == "timeout" {
 				err := s.reconnect(receive_channel, exit_channel, time_out)
 				if err != nil {
-					panic(err)
+					return err
 				}
-
-				go s.broadcastSocket.Subscribe(receive_channel, exit_channel, time_out)
+			} else {
+				if err := s.close(exit_channel); err != nil {
+					return err
+				}
+				received_err := errors.New("received an error from subscription: " + reply.Message)
+				return received_err
 			}
-			continue
 		}
 
 		// validate the parameters
 		networkId, err := message.GetString(reply.Params, "network_id")
 		if err != nil {
-			fmt.Println("the sds publisher invalid 'network_id'. reconnect and try again until publisher won't fix it. error " + err.Error())
-			err := s.reconnect(receive_channel, exit_channel, time_out)
-			if err != nil {
-				panic(err)
+			if close_err := s.close(exit_channel); close_err != nil {
+				return errors.New("the sds publisher invalid 'network_id'. failed to close the subscriber loop. error " + close_err.Error())
 			}
-			continue
+			return errors.New("the sds publisher invalid 'network_id'. reconnect and try again until publisher won't fix it. error " + err.Error())
 		}
 		address, err := message.GetString(reply.Params, "address")
 		if err != nil {
-			fmt.Println("the sds publisher invalid 'address'. reconnect and try again until publisher won't fix it. error " + err.Error())
-			err := s.reconnect(receive_channel, exit_channel, time_out)
-			if err != nil {
-				panic(err)
+			if close_err := s.close(exit_channel); close_err != nil {
+				return errors.New("the sds publisher invalid 'address'. failed to close the subscriber loop. error " + close_err.Error())
 			}
-			continue
+			return errors.New("the sds publisher invalid 'address'. reconnect and try again until publisher won't fix it. error " + err.Error())
 		}
 		block_timestamp, err := message.GetUint64(reply.Params, "block_timestamp")
 		if err != nil {
-			fmt.Println("the sds publisher invalid 'block_timestamp'. reconnect and try again until publisher won't fix it. error " + err.Error())
-			err := s.reconnect(receive_channel, exit_channel, time_out)
-			if err != nil {
-				panic(err)
+			if close_err := s.close(exit_channel); close_err != nil {
+				return errors.New("the sds publisher invalid 'block_timestamp'. failed to close the subscriber loop. error " + close_err.Error())
 			}
-			continue
+			return errors.New("the sds publisher invalid 'block_timestamp'. reconnect and try again until publisher won't fix it. error " + err.Error())
 		}
 
 		// Return the data to the SDK client.
@@ -362,21 +366,17 @@ func (s *Subscriber) read_from_publisher() {
 		// receive the transactions and logs of the smartcontract
 		raw_transactions, err := message.GetMapList(reply.Params, "transactions")
 		if err != nil {
-			fmt.Println("the sds publisher invalid 'transactions'. reconnect and try again until publisher won't fix it. error " + err.Error())
-			err := s.reconnect(receive_channel, exit_channel, time_out)
-			if err != nil {
-				panic(err)
+			if close_err := s.close(exit_channel); close_err != nil {
+				return errors.New("the sds publisher invalid 'transactions'. failed to close the subscriber loop. error " + close_err.Error())
 			}
-			continue
+			return errors.New("the sds publisher invalid 'transactions'. reconnect and try again until publisher won't fix it. error " + err.Error())
 		}
 		raw_logs, err := message.GetMapList(reply.Params, "logs")
 		if err != nil {
-			fmt.Println("the sds publisher invalid 'logs'. reconnect and try again until publisher won't fix it. error " + err.Error())
-			err := s.reconnect(receive_channel, exit_channel, time_out)
-			if err != nil {
-				panic(err)
+			if close_err := s.close(exit_channel); close_err != nil {
+				return errors.New("the sds publisher invalid 'logs'. failed to close the subscriber loop. error " + close_err.Error())
 			}
-			continue
+			return errors.New("the sds publisher invalid 'logs'. reconnect and try again until publisher won't fix it. error " + err.Error())
 		}
 
 		key := static.CreateSmartcontractKey(networkId, address)
@@ -386,54 +386,39 @@ func (s *Subscriber) read_from_publisher() {
 			continue
 		}
 
-		success := true
-
 		transactions := make([]*categorizer.Transaction, len(raw_transactions))
 		for i, raw := range raw_transactions {
 			transaction, err := categorizer.ParseTransaction(raw)
 			if err != nil {
-				fmt.Println("the sds publisher invalid 'transactions'. failed to parse it. reconnect and try again until publisher won't fix it. error " + err.Error())
-				err := s.reconnect(receive_channel, exit_channel, time_out)
-				if err != nil {
-					panic(err)
+				if close_err := s.close(exit_channel); close_err != nil {
+					return errors.New("failed to parse the transaction " + err.Error() + ", . failed to close the subscriber loop. error " + close_err.Error())
 				}
-				success = false
-				break
+				return errors.New("the sds publisher invalid 'transactions'. failed to parse it. error " + err.Error())
 			}
 
 			transactions[i] = transaction
 		}
-		if !success {
-			continue
-		}
+
 		logs := make([]*categorizer.Log, len(raw_logs))
 		for i, raw := range raw_logs {
 			log, err := categorizer.ParseLog(raw)
 			if err != nil {
-				fmt.Println("the sds publisher invalid 'logs'. failed to parse it. reconnect and try again until publisher won't fix it. error " + err.Error())
-				err := s.reconnect(receive_channel, exit_channel, time_out)
-				if err != nil {
-					panic(err)
+				if close_err := s.close(exit_channel); close_err != nil {
+					return errors.New("failed to parse the log " + err.Error() + ", . failed to close the subscriber loop. error " + close_err.Error())
 				}
-				success = false
-				break
+				return errors.New("the sds publisher invalid 'logs'. failed to parse it. error " + err.Error())
 			}
 
 			logs[i] = log
-		}
-		if !success {
-			continue
 		}
 
 		// Update the timestamp in the cache only if the received data is valid.
 		err = s.db.SetBlockTimestamp(key, block_timestamp)
 		if err != nil {
-			fmt.Println("the sds publisher invalid 'logs'. reconnect and try again until publisher won't fix it. error " + err.Error())
-			err := s.reconnect(receive_channel, exit_channel, time_out)
-			if err != nil {
-				panic(err)
+			if close_err := s.close(exit_channel); close_err != nil {
+				return errors.New("failed to update the local cache: " + err.Error() + ", . failed to close the subscriber loop. error " + close_err.Error())
 			}
-			continue
+			return errors.New("the local cache saving error " + err.Error())
 		}
 
 		return_reply := message.Reply{
