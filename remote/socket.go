@@ -214,18 +214,10 @@ func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interfac
 	}
 
 	if socket_type != zmq.REQ && socket_type != zmq.DEALER {
-		return nil, errors.New("invalid socket type for request-reply")
+		return nil, errors.New("invalid socket type for request-reply. Only REQ or DEALER is supported")
 	}
-
-	poller := zmq.NewPoller()
-	poller.Add(socket.socket, zmq.POLLIN)
 
 	command_name := request.CommandName()
-
-	//  We send a request, then we work to get a reply
-	if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
-		return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", command_name, socket.remoteService.ServiceName(), err)
-	}
 
 	request_timeout := REQUEST_TIMEOUT
 	if env.Exists("SDS_REQUEST_TIMEOUT") {
@@ -237,8 +229,13 @@ func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interfac
 
 	// we attempt requests for an infinite amount of time.
 	for {
+		//  We send a request, then we work to get a reply
+		if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
+			return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", command_name, socket.remoteService.ServiceName(), err)
+		}
+
 		//  Poll socket for a reply, with timeout
-		sockets, err := poller.Poll(request_timeout)
+		sockets, err := socket.poller.Poll(request_timeout)
 		if err != nil {
 			return nil, fmt.Errorf("failed to to send the command '%s' to '%s'. poll error: %w", command_name, socket.remoteService.ServiceName(), err)
 		}
@@ -267,22 +264,9 @@ func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interfac
 			return reply.Params, nil
 		} else {
 			fmt.Println("command '", command_name, "' wasn't replied by '", socket.remoteService.ServiceName(), "' in ", request_timeout, ", retrying...")
-			//  Old socket is confused; close it and open a new one
-			socket.socket.Close()
-
-			socket.socket, _ = zmq.NewSocket(zmq.REQ)
-			if err := socket.socket.Connect("tcp://" + socket.remoteService.Url()); err != nil {
-				panic(fmt.Errorf("error '"+socket.remoteService.ServiceName()+"' connect: %w", err))
-			}
-
-			// Recreate poller for new client
-			poller = zmq.NewPoller()
-			poller.Add(socket.socket, zmq.POLLIN)
-
-			//  Send request again, on new socket
-			//  We send a request, then we work to get a reply
-			if _, err := socket.socket.SendMessage(request.ToString()); err != nil {
-				return nil, fmt.Errorf("failed to send the command '%s' to '%s'. socket error: %w", command_name, socket.remoteService.ServiceName(), err)
+			err := socket.reconnect()
+			if err != nil {
+				return nil, err
 			}
 		}
 	}
