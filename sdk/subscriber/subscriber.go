@@ -27,7 +27,7 @@ type Subscriber struct {
 }
 
 // Create a new subscriber for a given user and his topic filter.
-func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*Subscriber, error) {
+func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string, clear_cache bool) (*Subscriber, error) {
 	subscriber := Subscriber{
 		Address:           address,
 		socket:            gatewaySocket,
@@ -35,7 +35,7 @@ func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string) (*S
 		smartcontractKeys: make([]*static.SmartcontractKey, 0),
 	}
 
-	err := subscriber.load_smartcontracts()
+	err := subscriber.load_smartcontracts(clear_cache)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (s *Subscriber) get_data() {
 
 // Get the list of the smartcontracts by smartcontract filter from SDS Categorizer via SDS Gateway
 // Then cache them out and list in the Subscriber data structure
-func (s *Subscriber) load_smartcontracts() error {
+func (s *Subscriber) load_smartcontracts(clear_cache bool) error {
 	// preparing the subscriber so that we catch the first message if it was send
 	// by publisher.
 
@@ -227,10 +227,12 @@ func (s *Subscriber) load_smartcontracts() error {
 	for i, sm := range smartcontracts {
 		key := sm.KeyString()
 
-		// err := s.db.DeleteBlockTimestamp(key)
-		// if err != nil {
-		// panic(err)
-		// }
+		if clear_cache {
+			err := s.db.DeleteBlockTimestamp(key)
+			if err != nil {
+				return err
+			}
+		}
 		// cache the smartcontract block timestamp
 		// block timestamp is used to subscribe for the events
 		blockTimestamp := s.db.GetBlockTimestamp(key)

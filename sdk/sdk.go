@@ -115,7 +115,7 @@ func NewWriter(address string) (*writer.Writer, error) {
 }
 
 // Returns a new subscriber
-func NewSubscriber(address string, topicFilter *topic.TopicFilter) (*subscriber.Subscriber, error) {
+func NewSubscriber(address string, topicFilter *topic.TopicFilter, clear_cache bool) (*subscriber.Subscriber, error) {
 	e, err := gatewayEnv(true)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func NewSubscriber(address string, topicFilter *topic.TopicFilter) (*subscriber.
 		return nil, err
 	}
 
-	return subscriber.NewSubscriber(gatewaySocket, db, address)
+	return subscriber.NewSubscriber(gatewaySocket, db, address, clear_cache)
 }
 
 // Returns the gateway environment variable
