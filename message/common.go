@@ -3,7 +3,10 @@ package message
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strconv"
+
+	"github.com/ethereum/go-ethereum/common/math"
 )
 
 // Returns the parameter as an uint64
@@ -39,6 +42,26 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 	value, err := raw.(json.Number).Float64()
 
 	return value, err
+}
+
+// Returns the parsed large number. If the number size is more than 64 bits.
+func GetBigNumber(parameters map[string]interface{}, name string) (*big.Int, error) {
+	raw, exists := parameters[name]
+	if !exists {
+		return nil, errors.New("missing '" + name + "' parameter in the Request")
+	}
+
+	value, ok := raw.(json.Number)
+	if !ok {
+		return nil, errors.New("parameter '" + name + "' expected to be as a number")
+	}
+
+	number, ok := math.ParseBig256(string(value))
+	if !ok {
+		return nil, errors.New("parameter '" + name + "' is not a big number")
+	}
+
+	return number, nil
 }
 
 // Returns the paramater as a string
