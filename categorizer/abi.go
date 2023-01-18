@@ -33,7 +33,7 @@ func (a *Abi) GetMethod(method string) (*abi.Method, error) {
 		}
 	}
 
-	return nil, errors.New("method not found")
+	return nil, errors.New("smartcontract method not found")
 }
 
 // Given the transaction data, returns a categorized variant.
