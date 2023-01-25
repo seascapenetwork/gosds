@@ -105,6 +105,11 @@ func RemoteAbi(socket *remote.Socket, network_id string, address string) (*Abi, 
 		return nil, errors.New("missing 'abi' parameter from the SDS Static 'abi_get' command")
 	}
 
+	abi_hash, err := message.GetString(params, "abi_hash")
+	if err != nil {
+		return nil, err
+	}
+
 	new_abi, err := NewAbi(abi_bytes)
 	if err != nil {
 		return nil, err
