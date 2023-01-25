@@ -10,7 +10,6 @@ import (
 type Smartcontract struct {
 	NetworkId                 string
 	Address                   string
-	AbiHash                   string
 	CategorizedBlockNumber    uint64
 	CategorizedBlockTimestamp uint64
 }
@@ -32,7 +31,6 @@ func (s *Smartcontract) ToJSON() map[string]interface{} {
 	i := map[string]interface{}{}
 	i["network_id"] = s.NetworkId
 	i["address"] = s.Address
-	i["abi_hash"] = s.AbiHash
 	i["categorized_block_number"] = s.CategorizedBlockNumber
 	i["categorized_block_timestamp"] = s.CategorizedBlockTimestamp
 	return i
@@ -44,10 +42,6 @@ func ParseSmartcontract(blob map[string]interface{}) (*Smartcontract, error) {
 		return nil, err
 	}
 	address, err := message.GetString(blob, "address")
-	if err != nil {
-		return nil, err
-	}
-	abi_hash, err := message.GetString(blob, "abi_hash")
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +57,6 @@ func ParseSmartcontract(blob map[string]interface{}) (*Smartcontract, error) {
 	return &Smartcontract{
 		NetworkId:                 network_id,
 		Address:                   address,
-		AbiHash:                   abi_hash,
 		CategorizedBlockNumber:    categorized_block_number,
 		CategorizedBlockTimestamp: categorized_block_timestamp,
 	}, nil

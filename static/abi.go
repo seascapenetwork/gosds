@@ -85,12 +85,13 @@ func RemoteAbiRegister(socket *remote.Socket, body interface{}) (map[string]inte
 }
 
 // Returns the abi from the remote server
-func RemoteAbi(socket *remote.Socket, abi_hash string) (*Abi, error) {
+func RemoteAbi(socket *remote.Socket, network_id string, address string) (*Abi, error) {
 	// Send hello.
 	request := message.Request{
 		Command: "abi_get",
 		Parameters: map[string]interface{}{
-			"abi_hash": abi_hash,
+			"network_id": network_id,
+			"address":    address,
 		},
 	}
 
