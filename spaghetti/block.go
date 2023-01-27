@@ -9,7 +9,7 @@ import (
 func RemoteBlockMintedTime(socket *remote.Socket, networkId string, blockNumber uint64) (uint64, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "block_minted_time_get",
+		Command: "block_get_timestamp",
 		Parameters: map[string]interface{}{
 			"network_id":   networkId,
 			"block_number": blockNumber,
@@ -21,7 +21,7 @@ func RemoteBlockMintedTime(socket *remote.Socket, networkId string, blockNumber 
 		return 0, err
 	}
 
-	return message.GetUint64(paramseters, "timestamp")
+	return message.GetUint64(paramseters, "block_timestamp")
 }
 
 func RemoteBlockRange(socket *remote.Socket, networkId string, address string, from uint64, to uint64) (uint64, []*Transaction, []*Log, error) {
