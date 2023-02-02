@@ -23,7 +23,11 @@ func EnableSecurity() error {
 		return nil
 	}
 
-	zmq.AuthSetVerbose(true)
+	debug, err := argument.Exist(argument.SECURITY_DEBUG)
+	if err != nil {
+		return err
+	}
+	zmq.AuthSetVerbose(debug)
 	err = zmq.AuthStart()
 	if err != nil {
 		return err
