@@ -45,6 +45,11 @@ const (
 	REQUEST_TIMEOUT = 60 * time.Second //  msecs, (> 1000!)
 )
 
+// Initiates the socket with a timeout.
+// If the socket is already given, then reconnect() closes it.
+// Then creates a new socket.
+//
+// If no socket is given, then initiates a zmq.REQ socket.
 func (socket *Socket) reconnect() error {
 	var socket_ctx *zmq.Context
 	var socket_type zmq.Type
@@ -67,6 +72,14 @@ func (socket *Socket) reconnect() error {
 			return err
 		}
 		socket.socket = nil
+	} else {
+		new_ctx, err := zmq.NewContext()
+		if err != nil {
+			return err
+		} else {
+			socket_ctx = new_ctx
+		}
+		socket_type = zmq.REQ
 	}
 
 	sock, err := socket_ctx.NewSocket(socket_type)
