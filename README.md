@@ -1,478 +1,172 @@
-# SeascapeSDS & SeascapeSDK
+# SeascapeSDS Guide
 > this is the golang package of the SeascapeSDS
 
-This is an SDK to interact with SeascapeSDS. Also, this module contains the common data types of all SeascapeSDS.
+***S**eascape **S**oftware **D**evelopment **S**ervice*
+is the right toolbox to build feature rich applications on a blockchain.
 
-SeascaeSDS incapsulates reading, writing data to the blockchain behind the API.
+---
+Whenever you write a dapp, you also write the additional tools around the smartcontracts.
 
-The exposed API is developer friendly.
+* You write an unnecessary software that frequently reads the blockchain to update your backend.
+* You write an unnecessary tool that signs the transaction to change the state of smartcontract.
+* You need to write calculations for metadata. Such as representing token in fiat currency, or calculating APY/APR for defi project as we faced in during mini-game development.
 
-Forget about remembering smartcontract address, smartcontract ABI or worrying about the safety of the private keys.
+These tools are not exactly blockchain related. Most of the smartcontract developers doesn't required to write them. Its the burden of the backend developers.
 
-With this kind of solution, a backend developer could interact with the blockchain without knowing blockchain parts.
+You would be amazed how many backend developers fail during the development of these basic tools. Surprisingly it requires a good knowledge of the blockchain's API and internal work. Yet, the learning curve is quite long and painful.
+
+Knowing these facts, there are popping a lot of startups that provides these tools for a fee. How many messages I am getting every day on my professional email, or personal email from outsourcing companies that tries to get overpriced money for such tools.
+
+#### Let me give you more examples!
+
+
+What if your application is cross-chain, let's say your NFT or Token is cross-chain. 
+
+Or you want to utilize additional features in your smartcontracts, maybe oracles or schedulers. In that case each of them has their own cryptocurrency. You have to manage multi-currency for your single dapp.
+
+You still wonder, why there is no big "play2earn" games and dapps?
+
+> It comes from the expertise of the game developers working in the crypto space since 2018.
 
 ---
 
-# Prerequirements
+# Enter SeascapeSDS
+Consider SeascapeSDS as a collection of microservices. You deploy the smartcontract with it, and all the tools necessary to build your dapps are magically appear to you. Each tool is microservice.
 
-* a developer address derived from an assymetric key. An address whitelisted in SeascapeSDS (in the future it will be public).
-* URL of the SDS Gateway (request-reply server).
-* URL of the SDS Publisher (broadcaster of the transaction events).
+Since SeascapeSDS is in the microservice architecture, if you don't have the feature that you want, then you can create it on your own or ask the community to build it for you through bounties and share it with all other developers as we do it with you.
 
-*for example:*
-```js
-BACKEND_DEVELOPER_ACCOUNT=0x5bDed8f6BdAE766C361EDaE25c5DC966BCaF8f43
-SDS_GATEWAY_URL=sds-gateway.seascape.network:3000
-SDS_PUBLISHER_URL=sds-gateway.seascape.network:3001
+For big innovations, working as a single team, trying to earn money on your cryptocurrency is one of the major drawbacks that pushes the crypto space from innovation.
+
+Right, let the cryptocurrency of each project "go to the moon" because of its popularity and its users, not because of the underlying technology.
+
+
+# Example
+Let's assume that the smartcontract developer deployed the smartcontract on a blockchain. He did it using SDS CLI. Now our smartcontract is registered on SeascapeSDS.
+
+For example let's work with ScapeNFT. Its registered on the SeascapeSDS as:
+
+
+```javascript
+
+organization: "seascape"
+project: "core"
+network_ids: ["1", "56", "1284"]
+group: "nft"
+name: "ScapeNFT"
 ```
 
----
+ScapeNFTs created by "seascape" organization. Its part of its core project. ScapeNFT belongs to the "nft" smartcontract groups.
 
-# Understanding how SeascapeSDS does work
+Finally its deployed on three blockchains: `Ethereum`, `BNB Chain`, and `Moonriver`.
 
-Using this SDK, a backend developer can interact with the smartcontract through SeascapeSDS. Two kind of operations users can do with the smartcontract:
 
-* Read the data from smartcontract.
-* Write the data to the smartcontract.
+## Example 1: Track the ScapeNFT transfers
 
-## Reading smartcontract
-* Users can read the smartcontract's method.
-* Users can listen for any transaction that occured with a smartcontract.
+Create an empty project with go programming language:
 
-*For example, there is an NFT*
-* *A backend developer can read the owner of the certain token*
-* *A backend developer can subscribe for a minting of a new token*
+```sh
+?> mkdir scape_nft_example
+?> go init mod
+?> go get github.com/blocklords/gosds
+```
 
-## Writing smartcontract
-* Users can send a transaction to the blockchain that invokes one of the smartcontract methods.
-* Users can send the transaction to the pool. Once the pool is full or pull is timed out, the SeascapeSDS will send the batch as a single transaction.
+With the gosds package installed, let's create the `.env` file with the authentication parameters.
 
-*For example, there is an NFT*
-* *A backend developer could transfer a token*
-* *A backend developer could do a mass airdrop of the tokens to the customers*
+> Installation process of gosds and its setup requirements will be added later.
 
-## Setting up the smartcontract
-But what kind of smartcontracts the backend developer could interact with? Who sets the smartcontracts? 
-The smartcontracts that a backend developer could interact with are set up by a smartcontract developer.
+Here is the example of tracking transactions:
 
-Setting up of the smartcontracts are done using [SeascapeCLI](https://github.com/blocklords/seascape-cli). Check the documentation if you are a smartcontract developer.
+```
+package main
 
-*The reason why a smartcontract developer is handling the smartcontract setup is for two reasons.*
-*Among all developers of the dapp, he is understandably the one who has the knowledge of how blockchain works. This knowledge is not required from the backend developer that uses SeascapeSDK*
-*Secondly, the setup of the smartcontract is automated as much as possible. As a result, when a smartcontract deployed on the blockchain, **SeascapeCLI** will register the smartcontract on SDS automatically.*
+import (
+	"github.com/blocklords/gosds/categorizer"
+	"github.com/blocklords/gosds/env"
+	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/sdk"
+	"github.com/blocklords/gosds/security"
+	"github.com/blocklords/gosds/topic"
+)
 
-## Topics
-But how the backend developer do know what kind of smartcontract is setted up?
+func main() {
+	security.EnableSecurity()
+	env.LoadAnyEnv()
 
-> In the future we will have a specific sector on the SDS webpage that keeps the list of the smartcontracts for the developer.
+	// ScapeNFT topic filter
+	filter := topic.TopicFilter{
+            Organizations:  []string{"seascape"},
+            Projects:       []string{"core"},
+            Smartcontracts: []string{"ScapeNFT"},
+            Methods:        []string{"transfer"},
+	}
 
-When a smartcontract is registered via **SeascapeCLI**, the smartcontract developer sets the *Topic* of the smartcontract.
+	subscriber, _ := sdk.NewSubscriber("sample", &filter, true)
+	subscriber.Start()
 
-Then, the smartcontract developer will share the topic with the backend developer.
+	for {
+		response := <-subscriber.BroadcastChan
 
-Using the topic, backend developer could know what kind of smartcontract he can interact with.
+		if !response.IsOK() {
+			fmt.Println("received an error %s", response.Reply().Message)
+			break
+		}
 
-### Topic structure
-Topic has the following parameters:
+		parameters := response.Reply().Params
+		transactions := parameters["transactions"].([]*categorizer.Transaction)
 
-* `organization` or `o` the name of the organization that handles the account whitelisting. *It's the name of the community, company that writes the dapp.*
-* `project` or `p` the name of the project that holds the smartcontract. *Usually its the name of the dapp.*
-* `network_id` or `n` the chain id where the smartcontract is deployed. *For example, it would be `"1"` for ethereum, `"imx"` if the smartcontract is deployed on the Immutable X.*
-* `group` or `g` the name of the smartcontract group within the project. When a project has multiple smartcontracts, its better to group them. *If the smartcontract is the token, then the group name would be `"ERC20"`. If the smartcontract is an NFT, then the group name would be `"nft"`*
-* `smartcontract` or `s` the name of the smartcontract. It should be identical to the filename of the smartcontract.
-* `method` or `m` the name of the smartcontract method.
-* `log` or `l` the name of the smartcontract event log.
+		fmt.Println("the transaction in the gosds/categorizer.Transaction struct", transactions)
+            
+    		for _, tx := range transactions {
+	    		nft_id := tx.Args["_nftId"]
+		    	from := tx.Args["_from"]
+			to := tx.Args["_to"]
 
-*For example, to interact with the ScapeNFT from [Seascape Network](https://seascape.network) the following topics can be used*
+			fmt.Println("NFT %d transferred from %s to %s", nft_id, from, to)
+			fmt.Println("on a network %s at %d", tx.NetworkId, tx.BlockTimestamp)
 
-```js
-var1 = "o:seascape-network;p:core;n:1;g:nft;s:ScapeNFT;m:ownerOf"
-
-var2 = "o:seascape-network;p:core;n:1;g:nft;s:ScapeNFT;l:Transfer"
+			// Do something with the transactions
+		}
+	}
+}
 
 ```
 
-the `var1` topic indicates the `ownerOf` method of the `ScapeNFT` smartcontract which is classified as `nft`, deployed on network `1`. The smartcontract is part of the `core` project of the `seascape-network` organization.
+That's all! No need to know what is the smartcontract address, to keep the ABI interface (If you know what are these terms mean).
 
-the `var2` topic indicates the `Transfer` event of the same `ScapeNFT` as in the `var1`.
+SeascapeSDS will care about the network issues, about smartcontract ABI and its address.
 
-### Topic String and Topic Object
-The examples `var1` and `var2` showed above are examples of the *Topic String*. We represent the topic a string line.
+#### Now let's discuss about about the code.
 
-However, topics can be also represented as the JSON object. The Topic Object structure is:
+Very important thing there is the topic `filter` variable.
+In the topic, we listed the smartcontract name: `ScapeNFT`, but we didn't list the network ids (remember that the NFT is deployed on `Ethereum`, `BNB Chain` and `Moonriver`).
 
-```js
-{
-    "o": "seascape-network", // organization
-    "p": "core",             // project
-    "n": "1",                // network id
-    "g": "nft",              // group
-    "s": "ScapeNFT",         // smartcontract name
-    "m": "ownerOf",          // method
-    "l": "Transfer"          // event log
+By omitting network ids, Scape NFT on any network will be received by the backend.
+
+If you want for example to track ScapeNFTs on BNB Chain then change the topic filter to:
+
+```go
+filter := topic.TopicFilter{
+    Organizations:  []string{"seascape"},
+    Projects:       []string{"core"},
+    Smartcontracts: []string{"ScapeNFT"},
+    NetworkIds:     []string{"1"},
+    Methods:        []string{"transfer"},
 }
 ```
 
-Note that `"n"` value despite being a digit, its represented in the string format. **All values of the Topic are considered as a string**.
+* If you want to track any transaction, then remove the Methods.
+* If you want to track any nft in the seascape ecosystem, then 1. delete the `Smartcontracts`, `Projects`, add the `Groups: []string{"nft"}`.
 
-Note also, we represented both method and log in the topic. However, depending on the use case, you would use either method or log. Rarely you would need both of them.
+Once we got the transactions, what about the parameters of the transactions? In the example above we listed three arguments as:
 
-### Filtering the Topic Path
-The choice of the topics to represent the smartcontracts are for the reason.
-It'ts a powerful tool to filter smartcontract.
-
-What I mean is that you don't have to write topic string as we did in `var1` and `var2` above.
-
-The `"o"`, `"m"` and other parts of the topic are called paths. The topic is power in the regard that you don't have to write full path. Some parts of the topic could be omitted.
-
-*For example:*
-
-```js
-var3 = "o:seascape-network;p:core;g:nft;s:ScapeNFT"
-```
-Note that in the `var3` example we omitted `"n"`, `"m"`, and `"l"`. This means, this topic string will work with any method, log of the *ScapeNFT* smartcontract deployed on any network.
-This is useful, if your smartcontract is multichain.
-
-*Another example:*
-
-```js
-var4 = "g:nft;l:Transfer"
+```go
+nft_id := tx.Args["_nftId"]
+from := tx.Args["_from"]
+to := tx.Args["_to"]
 ```
 
-The topic string above means the `"Transfer"` log of any smartcontract from any project or organization that is classified as an `"nft"`.
+The names of the arguments are identical how they are written in the source code. 
 
-*With this kind of topics for example, you can build data analytical tools or apply a machine learning on the blockchain data.*
+On the roadmap, we have a plan want to generate a documentation by AI. AI will parse the smartcontract interface, and will set the basic use cases with `copy-paste` code. Write, the less developer writes, the better it is.
 
-As you see, the topic paths can be omitted. If the topic path is not written in the topic string, then it means, any path.
-
-Question, what does the following valid topic string mean?
-
-```js
-var5 = "" // empty
-```
-
-### Topic Filter
-However, SeascapeSDS provides another form of the Topic Strings and Topic Objects which is called Topic Filter.
-
-The Topic Filter is almost identical to the Topic Strings, except that the path values are a list:
-
-Here is the Topic Filter's JSON object:
-
-```js
-{
-    "o": ["seascape-network"], // organization
-    "p": ["core"],             // project
-    "n": ["1"],                // network id
-    "g": ["nft"],              // group
-    "s": ["ScapeNFT"],         // smartcontract name
-    "m": ["ownerOf"],          // method
-    "l": ["Transfer"]          // event log
-}
-```
-
-And here is the topic filter strings:
-
-```js
-var6 = "o:seascape-network;g:ERC20,nft;l:Mint,Burn,Transfer"
-```
-
-In the topic string, the list elements of each path are separated by comma.
-
-In the example `var6` notice the `"g"` group and `"l"` paths.
-The `"g"` path includes two elements: *ERC20* and *nft*.
-The `"l"` path includes three elements: *Mint*, *Burn* and *Transfer*.
-
-The example above means, that the topic filter does the operation with *Mint*, *Burn* and *Transfer* logs of any ERC20 or nft smartcontracts.
-
-The Topic Filter allow to choose selected group of path.
-
-### Message and Commands
-Before we show the coding part, we need to talk two more things.
-
-The SeascapeSDS composed of the various independent services all with `SDS` prefix.
-Whether the SDS services interact to each other or external forces interact with it, user of the service interacts in the `Request-Reply` or `Pub-Sub` manners. 
-
-The external force interacts with the SDS Gateway. And since this is one of the services, the manner of interaction applies to the gateway as well.
-
-In a *Request-Reply* user sends a `command` including the parameters of the command. In exchange it gets the reply from the service.
-
-Each of the services have a lit of commands that it supports. In the coding part of this documentation, I will show the list of all commands that is supported by `SDS Gateway`.
-
-The `Pub-Sub` interact manner doesn't accept any commands. The service user is the `SUB`criber, while the SDS serive is `PUB`lisher.
-
-In any case, those interaction manners always exchange the messages.
-
-A message is an object with the parameters of the service or user needs.
-
-There are three message types. `Request`, `Reply` and `Broadcast`.
-
-Broadcast messages are the message that is send by `Pub` service to clients that are connected to the publisher. The `Broadcast` message is the encapsulation of the `Reply` message and the broadcasting `topic`. Don't worry about understanding broadcast messages. 
-If you are using SeascapeSDK, you don't have to work with broadcast message or with broadcast topics. Consider them as the internal types. But its nice to know that they exist.
-
-#### Request message
-The request message is an JSON object with the two fields. Here is the reference how it looks:
-
-```js
-{
-    "command": "command string",
-    "parameters": {}
-}
-```
-
-The `command` string accepts the name of the command. The `parameters` keeps the properties of the command. If the command doesn't have any property, then `parameters` field will keep an empty object.
-
-The Request message is send to the `Request-Reply` service.
-
-### Reply message
-The `Request-Reply` service always return accepts `Request` messages. Then the service will return a `Reply` message back to the requester.
-
-Here is the reference how it looks:
-
-```js
-{
-    "status": "OK"   // status of reply
-    "message": "",
-    "parameters": {}
-}
-```
-
-The `status` field value is either `"OK"` or `"fail"`.
-If the status is a fail, then that means the requester didn't get what he was expected. If the status is OK, then the requester will get what he was expecting.
-
-The `message` field contains the error message. If the status of the reply is a fail, then `message` field will contain a string explaining the what went wrong. If the status is OK, then the `message` field will be an empty string.
-
-The `parameters` field contains the data that service replied back. If the status is OK, then `parameters` will contain the desired data that requester wants. If the reply is a failure, then the `parameters` will be an empty object.
-
----
-
-# SDK interaction
-
-Now, we come to the most interesting part. The following section lists all the SeascapeSDK functions + their examples to interact with the `SeascapeSDS`.
-
----
-
-# SDS Gateway command list reference
-Here is the list of the all commands that are supported by `SDS Gateway`.
-
-You don't have to worry about them. Because `SeascapeSDK` or `SeascapeCLI` will create or read the messages for the user.
-
-### command "smartcontract_read"
-The command to be called from SeascapeSDK.
-The command calls the smartcontract's read-only method.
-
-Parameters of the `smartcontract_read` command:
-
-`topic_string` string with the full path till the method. Full path means, that it should have any omitted string.
-> Later we might support it if its needed.
-
-`arguments` the function arguments to pass to the blockchain. The `arguments` is an object. If the smartcontract method doesn't have any method, then the arguments will be an empty object.
-The argument names should be identical to the method argument names as defined in the source code of the smartcontract.
-
-*For example the request*
-
-```js
-{
-    "command": "smartcontract_read",
-    "parameters": {
-        "topic_string": "o:seascape-network;p:core;n:1;g:nft;s:ScapeNFT;m:ownerOf",
-        "arguments": {
-            "tokenId": 1
-        }
-    }
-}
-```
-
-*A Reply from SDS Gateway:*
-```js
-{
-    "status": "OK",
-    "message": "",
-    "parameters": {
-        "result": {}
-    }
-}
-```
-If the smartcontract read returns a single data, then the `parameters.result` will be that single data. Otherwise it will contain an array of the smartcontract call response.
-
-### command  "smartcontract_write"
-The command to be called from SeascapeSDK.
-The command calls the smartcontract's public methods that updates the smartcontract data.
-
-Parameters of the `smartcontract_write` command:
-
-
-`topic_string` string with the full path till the method. Full path means, that it should have any omitted string.
-> Later we might support it if its needed.
-
-`arguments` the function arguments to pass to the blockchain. The `arguments` is an object. If the smartcontract method doesn't have any method, then the arguments will be an empty object.
-The argument names should be identical to the method argument names as defined in the source code of the smartcontract.
-
-*For example the request*
-
-```js
-{
-    "command": "smartcontract_write",
-    "parameters": {
-        "topic_string": "o:seascape-network;p:core;n:1;g:nft;s:ScapeNFT;m:transfer",
-        "arguments": {
-            "from": "",
-            "to": "",
-            "value": 1
-        }
-    }
-}
-```
-
-*A Reply from SDS Gateway:*
-```js
-{
-    "status": "OK",
-    "message": "",
-    "parameters": {
-        "tx_id": "",
-        "arguments": {}
-    }
-}
-```
-
-In a successful writing, the `SDS Gateway` will return the transaction id `tx_id`, the passed topic string and arguments from the requester.
-
-> The returning of the transaction id, doesn't mean that transaction was confirmed. If it was confirmed, consider getting it using a `subscribe` command described below.
-
-### command "subscribe"
-The command to be called from SeascapeSDK.
-The command indicates that the requester already connected to the `SDS Publisher` broadcaster and now ready to accept the messages that satisfies the topic filter.
-
-Parameters of the `subscribe` command:
-
-`topic_filter` a Topic Filter object, not a topic filter string. 
-
-`subscriber` the backend developer's whitelisted account address.
-
-
-*For example the request*
-
-```js
-{
-    "command": "smartcontract_write",
-    "parameters": {
-        "topic_filter": {
-            "from": "",
-            "to": "",
-            "value": 1
-        },
-        "subscriber": ""
-    }
-}
-```
-
-*A Reply from SDS Gateway:*
-```js
-{
-    "status": "OK",
-    "message": "",
-    "parameters": {
-        "block_timestamp": 1
-    }
-}
-```
-
-If the reply is successful, then the SDS Gateway will return a block timestamp. The SDS Publisher will send any event that matches to the `topic_filter` parameter of `Request` message that happened after the `block_timestamp`.
-
-When a subscriber subscribes for the first time to the topic filter, the block timestamp will be the block timestamp of the earliest deployment of the smartcontract.
-If the subscriber subscribes for the second time and on, then the `block_timestamp` will contain the last timestamp when a subscriber was online.
-
-### command "heartbeat"
-The command to be called from SeascapeSDK.
-The command is called regularly after call of the `subscribe` command. The `heartbeat` command extends the connection to the `SDS Publisher`.
-
-If the `heartbeat` command is not called within the FIVE seconds since the last `heartbeat` or `subscribe` command, then SeascapeSDS considers the Subscriber as offline and will stop broadcasting data.
-
-The `heartbeat` command has a one parameter:
-
-`subscriber` which should be identical as `subscriber` parameter of the `subscribe` command.
-
-*For example the request*
-
-```js
-{
-    "command": "heartbeat",
-    "parameters": {
-        "subscriber": ""
-    }
-}
-```
-
-*A Reply from SDS Gateway:*
-```js
-{
-    "status": "OK",
-    "message": "",
-    "parameters": {
-        "subscriber": ""
-    }
-}
-```
-
-
-### command "pool_add"
-The command to be called from SeascapeSDK.
-The command calls the smartcontract's public methods that updates the smartcontract data.
-
-If the `smartcontract_write` is universal, then `pool_add` is for a method has an array argument.
-The `pool_add` will store internally the elements of the array argument. Then after reaching to the pool limit or a timeout time, all the elements are packed as an array and send to the blockchain as a transaction.
-
-> Requires smartcontract's bundler to be enabled by a smartcontract developer.
-
-Parameters of the `pool_add` command:
-
-`writer` string is the account of the backend developer that is whitelisted on SeascapeSDS.
-
-`topic_string` string with the full path till the method. Full path means, that it should have any omitted string.
-> Later we might support it if its needed.
-
-`arguments` the function arguments to pass to the blockchain. The `arguments` is an object. If the smartcontract method doesn't have any method, then the arguments will be an empty object.
-The argument names should be identical to the method argument names as defined in the source code of the smartcontract.
-
-*For example the request*
-
-```js
-{
-    "command": "pool_add",
-    "parameters": {
-        "writer": "",
-        "topic_string": "o:seascape-network;p:core;n:1;g:nft;s:ScapeNFT;m:transfer",
-        "arguments": {
-            "from": "",
-            "to": "",
-            "value": 1
-        }
-    }
-}
-```
-
-*A Reply from SDS Gateway:*
-```js
-{
-    "status": "OK",
-    "message": "",
-    "parameters": {
-        "topic_string":        "",
-		"pool":                [{}],
-		"pool_length":         3,
-		"pool_limit":          5,
-		"timer_left":          5,
-		"next_execution_time": "123",
-    }
-}
-```
-
-In a successful writing, the `SDS Gateway` will return the pool information along with the topic string with a full path.
-
-`pool` parameter of the reply is an array of function arguments.
-`pool_length` is the size of the pool.
-`pool_limit` is the limit of the pool array. Upon reaching to the pool limit, the pool is cleared, and all data in the pool is send to the blockchain.
-`timer_left` an integer indicating the seconds till the automatic execution of the pool, even when a pool is not full.
-`next_execution_time` is the unix timestamp in seconds when the automatic pool execution will occur.
-
-> To listen the success of the pool execution, use the `subscribe` command described above.
+> More examples are coming soon.
