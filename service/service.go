@@ -86,7 +86,7 @@ func New(service_type ServiceType, limits ...Limit) (*Service, error) {
 
 	for _, limit := range limits {
 		switch limit {
-		case REQUEST:
+		case REMOTE:
 			if !env.Exists(port_env) && !env.Exists(host_env) {
 				return nil, fmt.Errorf("missing PORT AND HOST environment variables of SDS %s", s.Name)
 			}
@@ -96,7 +96,7 @@ func New(service_type ServiceType, limits ...Limit) (*Service, error) {
 			if !exist {
 				s.PublicKey = s.GetPublicKey()
 			}
-		case REPLY:
+		case THIS:
 			if !env.Exists(port_env) {
 				return nil, fmt.Errorf("missing PORT environment variable of SDS %s", s.Name)
 			}
