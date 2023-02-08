@@ -22,7 +22,7 @@ func (request *ServiceRequest) CommandName() string {
 // Convert ServiceRequest to JSON
 func (request *ServiceRequest) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
-		"public_key": request.Service.PublicKey(),
+		"public_key": request.Service.PublicKey,
 		"command":    request.Command,
 		"parameters": request.Parameters,
 	}
