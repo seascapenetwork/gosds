@@ -148,7 +148,7 @@ func gatewayEnv(broadcast bool) (*service.Service, error) {
 }
 
 func developer_env() (*service.Service, error) {
-	e, err := service.New(service.DEVELOPER, service.REQUEST, service.SUBSCRIBE)
+	e, err := service.New(service.DEVELOPER_GATEWAY, service.REQUEST, service.SUBSCRIBE)
 	if err != nil {
 		return nil, err
 	}
