@@ -2,38 +2,38 @@
 package account
 
 import (
-	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/service"
 )
 
 // Requeter to the SDS Service. It's either a developer or another SDS service.
 type Account struct {
-	id             uint64   // Auto incremented for every new developer
-	PublicKey      string   // Public Key for authentication.
-	Organization   string   // Organization
-	NonceTimestamp uint64   // Nonce since the last usage. Only acceptable for developers
-	service        *env.Env // If the account is another service, then this parameter keeps the data. Otherwise this parameter is a nil.
+	id             uint64           // Auto incremented for every new developer
+	PublicKey      string           // Public Key for authentication.
+	Organization   string           // Organization
+	NonceTimestamp uint64           // Nonce since the last usage. Only acceptable for developers
+	service        *service.Service // If the account is another service, then this parameter keeps the data. Otherwise this parameter is a nil.
 }
 
 type Accounts []*Account
 
 // Creates a new Account for a developer.
-func NewDeveloper(id uint64, public_key string, nonce_timestamp uint64, organization string) *Account {
-	return &Account{
-		id:             id,
-		PublicKey:      public_key,
-		NonceTimestamp: nonce_timestamp,
-		Organization:   organization,
-		service:        nil,
-	}
-}
+// func NewDeveloper(id uint64, public_key string, nonce_timestamp uint64, organization string) *Account {
+// 	return &Account{
+// 		id:             id,
+// 		PublicKey:      public_key,
+// 		NonceTimestamp: nonce_timestamp,
+// 		Organization:   organization,
+// 		service:        nil,
+// 	}
+// }
 
 // Creates a new Account for a service
-func NewService(service *env.Env) *Account {
+func NewService(service *service.Service) *Account {
 	return &Account{
 		id:             0,
 		NonceTimestamp: 0,
-		PublicKey:      service.PublicKey(),
+		PublicKey:      service.PublicKey,
 		Organization:   "",
 		service:        service,
 	}
@@ -61,7 +61,7 @@ func ParseJson(raw map[string]interface{}) (*Account, error) {
 	if err != nil {
 		return nil, err
 	}
-	service, err := env.GetByPublicKey(public_key)
+	service, err := service.GetByPublicKey(public_key)
 	if err != nil {
 		id, err := message.GetUint64(raw, "id")
 		if err != nil {
