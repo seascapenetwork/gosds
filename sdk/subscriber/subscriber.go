@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/blocklords/gosds/categorizer"
-	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/generic_type"
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/remote"
+	"github.com/blocklords/gosds/service"
 	"github.com/blocklords/gosds/static"
 
 	"github.com/blocklords/gosds/sdk/db"
@@ -47,14 +47,11 @@ func NewSubscriber(gatewaySocket *remote.Socket, db *db.KVM, address string, cle
 // Then start to queue the incoming data from the broadcaster.
 // The queued messages will be read and cached by the Subscriber.read_from_publisher() after getting the snapshot.
 func (subscriber *Subscriber) connect_to_publisher() error {
-	gateway_env, err := env.Gateway()
+	gateway_env, err := service.New(service.DEVELOPER_GATEWAY, service.SUBSCRIBE)
 	if err != nil {
 		return err
 	}
-	developer_env, err := env.Developer()
-	if err != nil {
-		return err
-	}
+	developer_env := service.NewDeveloper()
 
 	// Run the Subscriber that is connected to the Broadcaster
 	subscriber.broadcastSocket = remote.TcpSubscriberOrPanic(gateway_env, developer_env)

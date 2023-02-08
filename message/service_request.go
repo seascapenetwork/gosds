@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/blocklords/gosds/env"
+	"github.com/blocklords/gosds/service"
 )
 
 // The SDS Service will accepts a request from another request
 type ServiceRequest struct {
-	Service    *env.Env               // The service parameters
+	Service    *service.Service       // The service parameters
 	Command    string                 // Command type
 	Parameters map[string]interface{} // Parameters of the request
 }
@@ -74,7 +74,7 @@ func ParseServiceRequest(msgs []string) (ServiceRequest, error) {
 
 	// The developers or smartcontract developer public keys are not in the environment variable
 	// as a servie.
-	service_env, err := env.GetByPublicKey(public_key)
+	service_env, err := service.GetByPublicKey(public_key)
 	if err != nil {
 		return ServiceRequest{}, err
 	}

@@ -65,12 +65,12 @@ package sdk
 import (
 	"errors"
 
-	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/remote"
 	"github.com/blocklords/gosds/sdk/db"
 	"github.com/blocklords/gosds/sdk/reader"
 	"github.com/blocklords/gosds/sdk/subscriber"
 	"github.com/blocklords/gosds/sdk/writer"
+	"github.com/blocklords/gosds/service"
 	"github.com/blocklords/gosds/topic"
 )
 
@@ -138,28 +138,21 @@ func NewSubscriber(address string, topicFilter *topic.TopicFilter, clear_cache b
 
 // Returns the gateway environment variable
 // If the broadcast argument set true, then Gateway will require the broadcast to be set as well.
-func gatewayEnv(broadcast bool) (*env.Env, error) {
-	e, err := env.Gateway()
+func gatewayEnv(broadcast bool) (*service.Service, error) {
+	e, err := service.New(service.GATEWAY, service.REQUEST, service.SUBSCRIBE)
 	if err != nil {
 		return nil, err
-	}
-	if !e.UrlExist() {
-		return nil, errors.New("missing 'GATEWAY_HOST' and/or 'GATEWAY_PORT' environment variables")
-	}
-
-	if broadcast && !e.BroadcastExist() {
-		return nil, errors.New("missing 'GATEWAY_BROADCAST_HOST' and/or 'GATEWAY_BROADCAST_PORT' environment variables")
 	}
 
 	return e, nil
 }
 
-func developer_env() (*env.Env, error) {
-	e, err := env.Developer()
+func developer_env() (*service.Service, error) {
+	e, err := service.New(service.DEVELOPER, service.REQUEST, service.SUBSCRIBE)
 	if err != nil {
 		return nil, err
 	}
-	if len(e.SecretKey()) == 0 || len(e.PublicKey()) == 0 {
+	if len(e.SecretKey) == 0 || len(e.PublicKey) == 0 {
 		return nil, errors.New("missing 'DEVELOPER_SECRET_KEY' and/or 'DEVELOPER_PUBLIC_KEY' environment variables")
 	}
 
