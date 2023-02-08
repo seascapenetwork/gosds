@@ -18,15 +18,15 @@ type Account struct {
 type Accounts []*Account
 
 // Creates a new Account for a developer.
-// func NewDeveloper(id uint64, public_key string, nonce_timestamp uint64, organization string) *Account {
-// 	return &Account{
-// 		id:             id,
-// 		PublicKey:      public_key,
-// 		NonceTimestamp: nonce_timestamp,
-// 		Organization:   organization,
-// 		service:        nil,
-// 	}
-// }
+func NewDeveloper(id uint64, public_key string, nonce_timestamp uint64, organization string) *Account {
+	return &Account{
+		id:             id,
+		PublicKey:      public_key,
+		NonceTimestamp: nonce_timestamp,
+		Organization:   organization,
+		service:        nil,
+	}
+}
 
 // Creates a new Account for a service
 func NewService(service *service.Service) *Account {
