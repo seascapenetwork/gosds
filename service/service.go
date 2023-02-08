@@ -53,7 +53,7 @@ func (p *Service) set_broadcast_curve_key(secret_key string) error {
 	return nil
 }
 
-// for example service.New(service.SPAGHETTI, service.REQ, service.SUBSCRIBE)
+// for example service.New(service.SPAGHETTI, service.REMOTE, service.SUBSCRIBE)
 func New(service_type ServiceType, limits ...Limit) (*Service, error) {
 	name := string(service_type)
 	host_env := name + "_HOST"
@@ -141,18 +141,22 @@ func New(service_type ServiceType, limits ...Limit) (*Service, error) {
 	return &s, nil
 }
 
+// Returns the public key from the environment
 func (s *Service) GetPublicKey() string {
 	return env.GetString(s.Name + "_PUBLIC_KEY")
 }
 
+// Returns the broadcasting public key from the environment
 func (s *Service) GetBroadcastPublicKey() string {
 	return env.GetString(s.Name + "_BROADCAST_PUBLIC_KEY")
 }
 
+// Returns the Vault secret storage and the key for curve private part.
 func (s *Service) SecretKeyVariable() (string, string) {
 	return "SDS_SERVICES", s.Name + "_SECRET_KEY"
 }
 
+// Returns the Vault secret storage and the key for curve private part for broadcaster.
 func (s *Service) BroadcastSecretKeyVariable() (string, string) {
 	return "SDS_SERVICES", s.Name + "_BROADCAST_SECRET_KEY"
 }

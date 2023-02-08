@@ -139,7 +139,7 @@ func NewSubscriber(address string, topicFilter *topic.TopicFilter, clear_cache b
 // Returns the gateway environment variable
 // If the broadcast argument set true, then Gateway will require the broadcast to be set as well.
 func gatewayEnv(broadcast bool) (*service.Service, error) {
-	e, err := service.New(service.GATEWAY, service.REQUEST, service.SUBSCRIBE)
+	e, err := service.New(service.GATEWAY, service.REMOTE, service.SUBSCRIBE)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func gatewayEnv(broadcast bool) (*service.Service, error) {
 }
 
 func developer_env() (*service.Service, error) {
-	e, err := service.New(service.DEVELOPER_GATEWAY, service.REQUEST, service.SUBSCRIBE)
+	e, err := service.New(service.DEVELOPER_GATEWAY, service.REMOTE, service.SUBSCRIBE)
 	if err != nil {
 		return nil, err
 	}
