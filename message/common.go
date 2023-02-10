@@ -9,6 +9,111 @@ import (
 	"github.com/ethereum/go-ethereum/common/math"
 )
 
+// Returns the all uint64 parameters
+func GetUint64s(parameters map[string]interface{}, names ...string) ([]uint64, error) {
+	numbers := make([]uint64, len(names))
+	for i, name := range names {
+		number, err := GetUint64(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		numbers[i] = number
+	}
+
+	return numbers, nil
+}
+
+// Returns the all float64 parameters
+func GetFloat64s(parameters map[string]interface{}, names ...string) ([]float64, error) {
+	numbers := make([]float64, len(names))
+	for i, name := range names {
+		number, err := GetFloat64(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		numbers[i] = number
+	}
+
+	return numbers, nil
+}
+
+// Returns the all string parameters
+func GetStrings(parameters map[string]interface{}, names ...string) ([]string, error) {
+	values := make([]string, len(names))
+	for i, name := range names {
+		value, err := GetString(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		values[i] = value
+	}
+
+	return values, nil
+}
+
+// Returns the all big numbers
+func GetBigNumbers(parameters map[string]interface{}, names ...string) ([]*big.Int, error) {
+	values := make([]*big.Int, len(names))
+	for i, name := range names {
+		value, err := GetBigNumber(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		values[i] = value
+	}
+
+	return values, nil
+}
+
+// Returns the all string lists
+func GetStringLists(parameters map[string]interface{}, names ...string) ([][]string, error) {
+	values := make([][]string, len(names))
+	for i, name := range names {
+		value, err := GetStringList(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		values[i] = value
+	}
+
+	return values, nil
+}
+
+// Returns the all map lists
+func GetMapLists(parameters map[string]interface{}, names ...string) ([][]map[string]interface{}, error) {
+	values := make([][]map[string]interface{}, len(names))
+	for i, name := range names {
+		value, err := GetMapList(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		values[i] = value
+	}
+
+	return values, nil
+}
+
+// Returns the all maps
+func GetMaps(parameters map[string]interface{}, names ...string) ([]map[string]interface{}, error) {
+	values := make([]map[string]interface{}, len(names))
+	for i, name := range names {
+		value, err := GetMap(parameters, name)
+		if err != nil {
+			return nil, err
+		}
+
+		values[i] = value
+	}
+
+	return values, nil
+}
+
 // Returns the parameter as an uint64
 func GetUint64(parameters map[string]interface{}, name string) (uint64, error) {
 	raw, exists := parameters[name]
