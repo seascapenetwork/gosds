@@ -158,31 +158,34 @@ func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, 
 
 	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		return 0, nil, nil, err
+		return false, 0, nil, nil, err
 	}
 
 	cached, err := message.GetBoolean(parameters, "cached")
+	if err != nil {
+		return false, 0, nil, nil, err
+	}
 
 	timestamp, err := message.GetUint64(parameters, "timestamp")
 	if err != nil {
-		return 0, nil, nil, err
+		return false, 0, nil, nil, err
 	}
 
 	raw_transactions, err := message.GetMapList(parameters, "transactions")
 	if err != nil {
-		return 0, nil, nil, err
+		return false, 0, nil, nil, err
 	}
 
 	raw_logs, err := message.GetMapList(parameters, "logs")
 	if err != nil {
-		return 0, nil, nil, err
+		return false, 0, nil, nil, err
 	}
 
 	transactions := make([]*Transaction, len(raw_transactions))
 	for i, raw := range raw_transactions {
 		tx, err := ParseTransaction(raw)
 		if err != nil {
-			return 0, nil, nil, err
+			return false, 0, nil, nil, err
 		}
 		transactions[i] = tx
 	}
@@ -191,7 +194,7 @@ func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, 
 	for i, raw := range raw_logs {
 		l, err := ParseLog(raw)
 		if err != nil {
-			return 0, nil, nil, err
+			return false, 0, nil, nil, err
 		}
 		logs[i] = l
 	}
