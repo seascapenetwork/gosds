@@ -15,12 +15,12 @@ func RemoteBlockEarliestNumber(socket *remote.Socket, network_id string) (uint64
 		},
 	}
 
-	paramseters, err := socket.RequestRemoteService(&request)
+	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
 		return 0, err
 	}
 
-	return message.GetUint64(paramseters, "block_number")
+	return message.GetUint64(parameters, "block_number")
 }
 
 // Returns the block minted time from SDS Spaghetti
@@ -34,12 +34,12 @@ func RemoteBlockMintedTime(socket *remote.Socket, networkId string, blockNumber 
 		},
 	}
 
-	paramseters, err := socket.RequestRemoteService(&request)
+	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
 		return 0, err
 	}
 
-	return message.GetUint64(paramseters, "block_timestamp")
+	return message.GetUint64(parameters, "block_timestamp")
 }
 
 func RemoteBlockRange(socket *remote.Socket, networkId string, address string, from uint64, to uint64) (uint64, []*Transaction, []*Log, error) {
@@ -53,22 +53,22 @@ func RemoteBlockRange(socket *remote.Socket, networkId string, address string, f
 		},
 	}
 
-	paramseters, err := socket.RequestRemoteService(&request)
+	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	timestamp, err := message.GetUint64(paramseters, "timestamp")
+	timestamp, err := message.GetUint64(parameters, "timestamp")
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	raw_transactions, err := message.GetMapList(paramseters, "transactions")
+	raw_transactions, err := message.GetMapList(parameters, "transactions")
 	if err != nil {
 		return 0, nil, nil, err
 	}
 
-	raw_logs, err := message.GetMapList(paramseters, "logs")
+	raw_logs, err := message.GetMapList(parameters, "logs")
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -92,4 +92,60 @@ func RemoteBlockRange(socket *remote.Socket, networkId string, address string, f
 	}
 
 	return timestamp, transactions, logs, nil
+}
+
+// Returns the remote block information
+// The address parameter is optional (make it a blank string)
+// In that case SDS Spaghetti will return block with all transactions and logs.
+func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, address string) (bool, uint64, []*Transaction, []*Log, error) {
+	request := message.Request{
+		Command: "block_get",
+		Parameters: map[string]interface{}{
+			"block_number": block_number,
+			"network_id":   networkId,
+			"to":           address,
+		},
+	}
+
+	parameters, err := socket.RequestRemoteService(&request)
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	cached, err := message.GetBoolean(parameters, "cached")
+
+	timestamp, err := message.GetUint64(parameters, "timestamp")
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	raw_transactions, err := message.GetMapList(parameters, "transactions")
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	raw_logs, err := message.GetMapList(parameters, "logs")
+	if err != nil {
+		return 0, nil, nil, err
+	}
+
+	transactions := make([]*Transaction, len(raw_transactions))
+	for i, raw := range raw_transactions {
+		tx, err := ParseTransaction(raw)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		transactions[i] = tx
+	}
+
+	logs := make([]*Log, len(raw_logs))
+	for i, raw := range raw_logs {
+		l, err := ParseLog(raw)
+		if err != nil {
+			return 0, nil, nil, err
+		}
+		logs[i] = l
+	}
+
+	return cached, timestamp, transactions, logs, nil
 }
