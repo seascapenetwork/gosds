@@ -5,6 +5,24 @@ import (
 	"github.com/blocklords/gosds/remote"
 )
 
+// Returns the earliest number in the cache for a given network id
+func RemoteBlockEarliestNumber(socket *remote.Socket, network_id string) (uint64, error) {
+	// Send hello.
+	request := message.Request{
+		Command: "block_get_earliest_cached_block_number",
+		Parameters: map[string]interface{}{
+			"network_id": networkId,
+		},
+	}
+
+	paramseters, err := socket.RequestRemoteService(&request)
+	if err != nil {
+		return 0, err
+	}
+
+	return message.GetUint64(paramseters, "block_number")
+}
+
 // Returns the block minted time from SDS Spaghetti
 func RemoteBlockMintedTime(socket *remote.Socket, networkId string, blockNumber uint64) (uint64, error) {
 	// Send hello.
