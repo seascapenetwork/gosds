@@ -149,6 +149,20 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 	return value, err
 }
 
+func GetBoolean(parameters map[string]interface{}, name string) (bool, error) {
+	raw, exists := parameters[name]
+	if !exists {
+		return 0, errors.New("missing '" + name + "' parameter in the Request")
+	}
+
+	pure_value, ok := raw.(bool)
+	if ok {
+		return pure_value, nil
+	}
+
+	return false, errors.New("the '" + name + "' is not in a boolean format")
+}
+
 // Returns the parsed large number. If the number size is more than 64 bits.
 func GetBigNumber(parameters map[string]interface{}, name string) (*big.Int, error) {
 	raw, exists := parameters[name]
