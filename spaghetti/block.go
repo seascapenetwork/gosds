@@ -1,8 +1,13 @@
 package spaghetti
 
 import (
+	"fmt"
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/remote"
+
+	"github.com/blocklords/gosds/spaghetti"
+
+	eth_types "github.com/ethereum/go-ethereum/core/types"
 )
 
 type Block struct {
