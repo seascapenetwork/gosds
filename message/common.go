@@ -152,7 +152,7 @@ func GetFloat64(parameters map[string]interface{}, name string) (float64, error)
 func GetBoolean(parameters map[string]interface{}, name string) (bool, error) {
 	raw, exists := parameters[name]
 	if !exists {
-		return 0, errors.New("missing '" + name + "' parameter in the Request")
+		return false, errors.New("missing '" + name + "' parameter in the Request")
 	}
 
 	pure_value, ok := raw.(bool)
