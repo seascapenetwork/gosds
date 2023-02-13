@@ -60,7 +60,7 @@ func RemoteBlockEarliestNumber(socket *remote.Socket, network_id string) (uint64
 	request := message.Request{
 		Command: "block_get_earliest_cached_block_number",
 		Parameters: map[string]interface{}{
-			"network_id": networkId,
+			"network_id": network_id,
 		},
 	}
 
@@ -151,7 +151,7 @@ func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, 
 		Command: "block_get",
 		Parameters: map[string]interface{}{
 			"block_number": block_number,
-			"network_id":   networkId,
+			"network_id":   network_id,
 			"to":           address,
 		},
 	}
