@@ -115,7 +115,7 @@ func RemoteBlockRange(socket *remote.Socket, networkId string, address string, f
 // Returns the remote block information
 // The address parameter is optional (make it a blank string)
 // In that case SDS Spaghetti will return block with all transactions and logs.
-func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, address string) (bool, uint64, []*Transaction, []*Log, error) {
+func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, address string) (bool, *Block, error) {
 	request := message.Request{
 		Command: "block_get",
 		Parameters: map[string]interface{}{
@@ -127,34 +127,34 @@ func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, 
 
 	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		return false, 0, nil, nil, err
+		return false, nil, err
 	}
 
 	cached, err := message.GetBoolean(parameters, "cached")
 	if err != nil {
-		return false, 0, nil, nil, err
+		return false, nil, err
 	}
 
 	timestamp, err := message.GetUint64(parameters, "timestamp")
 	if err != nil {
-		return false, 0, nil, nil, err
+		return false, nil, err
 	}
 
 	raw_transactions, err := message.GetMapList(parameters, "transactions")
 	if err != nil {
-		return false, 0, nil, nil, err
+		return false, nil, err
 	}
 
 	raw_logs, err := message.GetMapList(parameters, "logs")
 	if err != nil {
-		return false, 0, nil, nil, err
+		return false, nil, err
 	}
 
 	transactions := make([]*Transaction, len(raw_transactions))
 	for i, raw := range raw_transactions {
 		tx, err := ParseTransaction(raw)
 		if err != nil {
-			return false, 0, nil, nil, err
+			return false, nil, err
 		}
 		transactions[i] = tx
 	}
@@ -163,10 +163,10 @@ func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, 
 	for i, raw := range raw_logs {
 		l, err := ParseLog(raw)
 		if err != nil {
-			return false, 0, nil, nil, err
+			return false, nil, err
 		}
 		logs[i] = l
 	}
 
-	return cached, timestamp, transactions, logs, nil
+	return cached, NewBlock(network_id, block_number, timestamp, transactions, logs), err
 }
