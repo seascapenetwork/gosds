@@ -24,10 +24,10 @@ func NewBlock(network_id string, block_number uint64, block_timestamp uint64, tr
 }
 
 // Returns the earliest number in the cache for a given network id
-func RemoteBlockEarliestNumber(socket *remote.Socket, network_id string) (uint64, error) {
+func RemoteBlockNumberCached(socket *remote.Socket, network_id string) (uint64, uint64, error) {
 	// Send hello.
 	request := message.Request{
-		Command: "block_get_earliest_cached_block_number",
+		Command: "block_get_cached_number",
 		Parameters: map[string]interface{}{
 			"network_id": network_id,
 		},
@@ -35,10 +35,19 @@ func RemoteBlockEarliestNumber(socket *remote.Socket, network_id string) (uint64
 
 	parameters, err := socket.RequestRemoteService(&request)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	return message.GetUint64(parameters, "block_number")
+	earliest_number, err := message.GetUint64(parameters, "block_number_earliest")
+	if err != nil {
+		return 0, 0, err
+	}
+	recent_number, err := message.GetUint64(parameters, "block_number_recent")
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return earliest_number, recent_number, nil
 }
 
 // Returns the block minted time from SDS Spaghetti
