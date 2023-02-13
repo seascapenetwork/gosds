@@ -5,6 +5,50 @@ import (
 	"github.com/blocklords/gosds/remote"
 )
 
+type Block struct {
+	NetworkId      string
+	BlockNumber    uint64
+	BlockTimestamp uint64
+	Transactions   []*spaghetti.Transaction
+	Logs           []*spaghetti.Log
+}
+
+func (block *Block) SetTransactions(raw_transactions []*eth_types.Transaction) error {
+	transactions := make([]*spaghetti.Transaction, len(raw_transactions))
+
+	for txIndex, rawTx := range raw_transactions {
+		tx, txErr := transaction.ParseTransaction(block.NetworkId, block.BlockNumber, uint(txIndex), rawTx)
+		if txErr != nil {
+			return fmt.Errorf("failed to set the block transactions. transaction parse error: %v", txErr)
+		}
+
+		transactions[txIndex] = tx
+	}
+
+	block.Transactions = transactions
+	return nil
+}
+
+func (block *Block) SetLogs(raw_logs []eth_types.Log) error {
+	var logs []*spaghetti.Log
+	for _, rawLog := range raw_logs {
+		if rawLog.Removed {
+			continue
+		}
+
+		log, txErr := log.ParseLog(block.NetworkId, &rawLog)
+		if txErr != nil {
+			return txErr
+		}
+
+		logs = append(logs, log)
+	}
+
+	block.Logs = logs
+
+	return nil
+}
+
 // Returns the earliest number in the cache for a given network id
 func RemoteBlockEarliestNumber(socket *remote.Socket, network_id string) (uint64, error) {
 	// Send hello.
