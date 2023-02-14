@@ -1,6 +1,8 @@
 package spaghetti
 
 import (
+	"strings"
+
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/remote"
 )
@@ -178,4 +180,24 @@ func RemoteBlock(socket *remote.Socket, network_id string, block_number uint64, 
 	}
 
 	return cached, NewBlock(network_id, block_number, timestamp, transactions, logs), err
+}
+
+// Returns the smartcontract information
+func (block *Block) GetForSmartcontract(address string) ([]*Transaction, []*Log) {
+	transactios := make([]*Transaction, 0)
+	logs := make([]*Log, 0)
+
+	for _, transaction := range block.Transactions {
+		if strings.EqualFold(transaction.TxTo, address) {
+			transactios = append(transactios, transaction)
+
+			for _, log := range block.Logs {
+				if strings.EqualFold(transaction.Txid, log.Txid) {
+					logs = append(logs, log)
+				}
+			}
+		}
+	}
+
+	return transactios, logs
 }
