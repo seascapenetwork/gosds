@@ -38,16 +38,16 @@ func RemoteBlockNumberCached(socket *remote.Socket, network_id string) (uint64, 
 		return 0, 0, err
 	}
 
-	earliest_number, err := message.GetUint64(parameters, "block_number_earliest")
+	block_number, err := message.GetUint64(parameters, "block_number")
 	if err != nil {
 		return 0, 0, err
 	}
-	recent_number, err := message.GetUint64(parameters, "block_number_recent")
+	block_timestamp, err := message.GetUint64(parameters, "block_timestamp")
 	if err != nil {
 		return 0, 0, err
 	}
 
-	return earliest_number, recent_number, nil
+	return block_number, block_timestamp, nil
 }
 
 // Returns the block minted time from SDS Spaghetti
