@@ -70,7 +70,6 @@ func ParseNetworks(raw_networks []map[string]interface{}) ([]*Network, error) {
 	}
 
 	return networks, nil
-}
 
 func (n *Network) ToJSON() map[string]interface{} {
 	return map[string]interface{}{
@@ -80,38 +79,11 @@ func (n *Network) ToJSON() map[string]interface{} {
 	}
 }
 
-// Returns list of the supported networks from SDS Static
-func GetSupportedNetworks(static_socket *remote.Socket, flag int8) map[string]string {
-	env := os.Getenv("SUPPORTED_NETWORKS")
-	if len(env) == 0 {
-		panic("the environment variable 'SUPPORTED_NETWORKS' is not provided")
-	}
 
-	var supportedNetworks map[string]string
-
-	parse_err := json.Unmarshal([]byte(env), &supportedNetworks)
-	if parse_err != nil {
-		panic("the environment variable 'SUPPORTED_NETWORKS' is not a valid JSON")
-	}
-
-	if flag == ALL {
-		return supportedNetworks
-	}
-
-	// without VM
-	imx := "imx"
-
-	for networkId := range supportedNetworks {
-		if strings.ToLower(networkId) == imx {
-			if flag == WITH_VM {
-				delete(supportedNetworks, networkId)
-			}
-		} else if flag == WITHOUT_VM {
 			delete(supportedNetworks, networkId)
 		}
 	}
 
-	return supportedNetworks
 }
 
 // Returns list of support network IDs from SDS Static
