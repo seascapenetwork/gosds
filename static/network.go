@@ -2,10 +2,7 @@
 package static
 
 import (
-	"encoding/json"
 	"errors"
-	"os"
-	"strings"
 
 	"github.com/blocklords/gosds/message"
 	"github.com/blocklords/gosds/remote"
@@ -16,6 +13,8 @@ type Network struct {
 	Provider string
 	Flag     int8 // With VM or Without VM
 }
+
+type Networks []*Network
 
 const (
 	ALL        int8 = 0 // any blockchain
@@ -56,9 +55,17 @@ func ParseNetwork(raw map[string]interface{}) (*Network, error) {
 	}, nil
 }
 
+func (n *Network) ToJSON() map[string]interface{} {
+	return map[string]interface{}{
+		"id":       n.Id,
+		"provider": n.Provider,
+		"flag":     n.Flag,
+	}
+}
+
 // parses list of JSON objects into the list of Networks
-func ParseNetworks(raw_networks []map[string]interface{}) ([]*Network, error) {
-	networks := make([]*Network, len(raw_networks))
+func ParseNetworks(raw_networks []map[string]interface{}) (Networks, error) {
+	networks := make(Networks, len(raw_networks))
 
 	for i, raw := range raw_networks {
 		network, err := ParseNetwork(raw)
@@ -70,20 +77,6 @@ func ParseNetworks(raw_networks []map[string]interface{}) ([]*Network, error) {
 	}
 
 	return networks, nil
-
-func (n *Network) ToJSON() map[string]interface{} {
-	return map[string]interface{}{
-		"id":       n.Id,
-		"provider": n.Provider,
-		"flag":     n.Flag,
-	}
-}
-
-
-			delete(supportedNetworks, networkId)
-		}
-	}
-
 }
 
 // Returns list of support network IDs from SDS Static
@@ -106,7 +99,7 @@ func GetNetworkIds(socket *remote.Socket, flag int8) ([]string, error) {
 }
 
 // Returns list of support network IDs from SDS Static
-func GetNetworks(socket *remote.Socket, flag int8) ([]*Network, error) {
+func GetNetworks(socket *remote.Socket, flag int8) (Networks, error) {
 	if !IsValidFlag(flag) {
 		return nil, errors.New("invalid 'flag' parameter")
 	}
@@ -152,4 +145,15 @@ func GetNetwork(socket *remote.Socket, network_id string, flag int8) (*Network, 
 	}
 
 	return ParseNetwork(raw)
+}
+
+// Whether the network with network_id exists in the networks list
+func (networks Networks) Exist(network_id string) bool {
+	for _, network := range networks {
+		if network.Id == network_id {
+			return true
+		}
+	}
+
+	return false
 }
