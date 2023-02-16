@@ -76,7 +76,7 @@ func Open(credentials DatabaseCredentials) (*Database, error) {
 	}
 
 	database := &Database{
-		connection:      nil,
+		Connection:      nil,
 		connectionMutex: sync.Mutex{},
 		parameters:      *parameters,
 	}
