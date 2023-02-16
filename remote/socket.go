@@ -18,6 +18,7 @@ import (
 	"github.com/blocklords/gosds/argument"
 	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/service"
 	zmq "github.com/pebbe/zmq4"
 )
 
@@ -26,8 +27,8 @@ import (
 type Socket struct {
 	// The name of remote SDS service and its URL
 	// its used as a clarification
-	remoteService *env.Env
-	thisService   *env.Env
+	remoteService *service.Service
+	thisService   *service.Service
 	poller        *zmq.Poller
 	socket        *zmq.Socket
 }
@@ -102,13 +103,13 @@ func (socket *Socket) reconnect() error {
 		client_public_key := ""
 		client_secret_key := ""
 		if socket_type == zmq.SUB {
-			public_key = socket.remoteService.BroadcastPublicKey()
-			client_public_key = socket.thisService.BroadcastPublicKey()
-			client_secret_key = socket.thisService.BroadcastSecretKey()
+			public_key = socket.remoteService.BroadcastPublicKey
+			client_public_key = socket.thisService.BroadcastPublicKey
+			client_secret_key = socket.thisService.BroadcastSecretKey
 		} else {
-			public_key = socket.remoteService.PublicKey()
-			client_public_key = socket.thisService.PublicKey()
-			client_secret_key = socket.thisService.SecretKey()
+			public_key = socket.remoteService.PublicKey
+			client_public_key = socket.thisService.PublicKey
+			client_secret_key = socket.thisService.SecretKey
 		}
 
 		err = socket.socket.ClientAuthCurve(public_key, client_public_key, client_secret_key)
@@ -156,7 +157,7 @@ func (socket *Socket) RemoteBroadcastPort() (uint, error) {
 // Returns the HOST envrionment parameters of the socket.
 //
 // Use it if you want to create another socket from this socket.
-func (socket *Socket) RemoteEnv() *env.Env {
+func (socket *Socket) RemoteEnv() *service.Service {
 	return socket.remoteService
 }
 
@@ -287,11 +288,7 @@ func RequestReply[V SDS_Message](socket *Socket, request V) (map[string]interfac
 
 // Create a new Socket on TCP protocol otherwise exit from the program
 // The socket is the wrapper over zmq.REQ
-func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
-	if !e.UrlExist() {
-		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' host and port and curve key if security was enabled"))
-	}
-
+func TcpRequestSocketOrPanic(e *service.Service, client *service.Service) *Socket {
 	sock, err := zmq.NewSocket(zmq.REQ)
 	if err != nil {
 		panic(err)
@@ -311,10 +308,7 @@ func TcpRequestSocketOrPanic(e *env.Env, client *env.Env) *Socket {
 
 // Create a new Socket on TCP protocol otherwise exit from the program
 // The socket is the wrapper over zmq.SUB
-func TcpSubscriberOrPanic(e *env.Env, client_env *env.Env) *Socket {
-	if !e.BroadcastExist() {
-		panic(fmt.Errorf("missing .env variable: Please set '" + e.ServiceName() + "' broadcast host and broadcast port and curve key if security was enabled"))
-	}
+func TcpSubscriberOrPanic(e *service.Service, client_env *service.Service) *Socket {
 	socket, sockErr := zmq.NewSocket(zmq.SUB)
 	if sockErr != nil {
 		panic(sockErr)
@@ -325,7 +319,7 @@ func TcpSubscriberOrPanic(e *env.Env, client_env *env.Env) *Socket {
 		panic(err)
 	}
 	if !plain {
-		err = socket.ClientAuthCurve(e.BroadcastPublicKey(), client_env.BroadcastPublicKey(), client_env.BroadcastSecretKey())
+		err = socket.ClientAuthCurve(e.BroadcastPublicKey, client_env.BroadcastPublicKey, client_env.BroadcastSecretKey)
 		if err != nil {
 			panic(err)
 		}

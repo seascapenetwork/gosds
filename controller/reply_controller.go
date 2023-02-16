@@ -10,8 +10,8 @@ import (
 
 	"github.com/blocklords/gosds/account"
 	"github.com/blocklords/gosds/argument"
-	"github.com/blocklords/gosds/env"
 	"github.com/blocklords/gosds/message"
+	"github.com/blocklords/gosds/service"
 
 	zmq "github.com/pebbe/zmq4"
 )
@@ -20,11 +20,7 @@ type CommandHandlers map[string]interface{}
 
 // Creates a new Reply controller using ZeroMQ
 // The requesters is the list of curve public keys that are allowed to connect to the socket.
-func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts account.Accounts) error {
-	if !e.PortExist() {
-		return errors.New("missing necessary environment variables. Please set '" + e.ServiceName() + "_PORT' and/or '" + e.ServiceName() + "_PUBLIC_KEY', '" + e.ServiceName() + "_SECRET_KEY'")
-	}
-
+func ReplyController(db *sql.DB, commands CommandHandlers, e *service.Service, accounts account.Accounts) error {
 	exist, err := argument.Exist(argument.PLAIN)
 	if err != nil {
 		return err
@@ -44,7 +40,7 @@ func ReplyController(db *sql.DB, commands CommandHandlers, e *env.Env, accounts 
 	}
 
 	if !exist {
-		err = socket.ServerAuthCurve(e.DomainName(), e.SecretKey())
+		err = socket.ServerAuthCurve(e.ServiceName(), e.SecretKey)
 		if err != nil {
 			return err
 		}

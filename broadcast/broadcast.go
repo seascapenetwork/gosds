@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/blocklords/gosds/argument"
-	"github.com/blocklords/gosds/env"
+	"github.com/blocklords/gosds/service"
 
 	"github.com/blocklords/gosds/message"
 
@@ -18,10 +18,10 @@ import (
 // ZAP.
 //
 // If some error is encountered, then this package panics
-func Run(channel chan message.Broadcast, broadcast_env *env.Env, whitelisted_users []*env.Env) {
+func Run(channel chan message.Broadcast, broadcast_env *service.Service, whitelisted_users []*service.Service) {
 	public_keys := make([]string, len(whitelisted_users))
 	for k, v := range whitelisted_users {
-		public_keys[k] = v.BroadcastPublicKey()
+		public_keys[k] = v.BroadcastPublicKey
 	}
 
 	plain, err := argument.Exist(argument.PLAIN)
@@ -31,7 +31,7 @@ func Run(channel chan message.Broadcast, broadcast_env *env.Env, whitelisted_use
 
 	domain_name := ""
 	if !plain {
-		domain_name = broadcast_env.DomainName() + "_broadcast"
+		domain_name = broadcast_env.ServiceName() + "_broadcast"
 
 		zmq.AuthCurveAdd(domain_name, public_keys...)
 	}
@@ -43,7 +43,7 @@ func Run(channel chan message.Broadcast, broadcast_env *env.Env, whitelisted_use
 	}
 	defer pub.Close()
 	if !plain {
-		pub.ServerAuthCurve(domain_name, broadcast_env.BroadcastSecretKey())
+		pub.ServerAuthCurve(domain_name, broadcast_env.BroadcastSecretKey)
 	}
 
 	err = pub.Bind("tcp://*:" + broadcast_env.BroadcastPort())
