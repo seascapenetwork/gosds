@@ -29,7 +29,7 @@ type DatabaseCredentials struct {
 }
 
 type Database struct {
-	connection      *sql.DB
+	Connection      *sql.DB
 	connectionMutex sync.Mutex
 	parameters      DatabaseParameters
 }
@@ -148,20 +148,20 @@ func (db *Database) closeReplaceConnection(new *sql.DB) {
 	defer db.connectionMutex.Unlock()
 
 	// close the existing connection, if exists
-	if db.connection != nil {
-		_ = db.connection.Close()
+	if db.Connection != nil {
+		_ = db.Connection.Close()
 	}
 
 	// replace with a new connection
-	db.connection = new
+	db.Connection = new
 }
 
 func (db *Database) Close() error {
 	/* */ db.connectionMutex.Lock()
 	defer db.connectionMutex.Unlock()
 
-	if db.connection != nil {
-		return db.connection.Close()
+	if db.Connection != nil {
+		return db.Connection.Close()
 	}
 
 	return nil
@@ -172,7 +172,7 @@ func (db *Database) Query(ctx context.Context, query string, arguments []interfa
 	db.connectionMutex.Lock()
 	defer db.connectionMutex.Unlock()
 
-	rows, err := db.connection.QueryContext(ctx, query, arguments...)
+	rows, err := db.Connection.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute %q query: %w", query, err)
 	}
